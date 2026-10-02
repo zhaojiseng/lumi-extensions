@@ -1,0 +1,313 @@
+/* 浮梦 Dreamy — follows Lumi's resolved color-scheme, including manual theme choices. */
+:scope {
+  --sidebar-width: 216px;
+  --shell-inset: 14px;
+  --accent: light-dark(#8055ce, #c5a8ff);
+  --accent-foreground: light-dark(#fff, #201634);
+  --accent-soft: light-dark(rgba(128,85,206,.16), rgba(197,168,255,.2));
+  --accent-hover: light-dark(#6b43b4, #ddc8ff);
+  --canvas: light-dark(#f4f0ff, #181430);
+  --panel: light-dark(rgba(255,255,255,.42), rgba(23,22,44,.5));
+  --panel-strong: light-dark(rgba(255,255,255,.68), rgba(43,36,65,.72));
+  --panel-soft: light-dark(rgba(243,235,255,.26), rgba(54,43,79,.3));
+  --text: light-dark(#302443, #f6efff);
+  --text-secondary: light-dark(#4b3e62, #e0d4ee);
+  --text-muted: light-dark(#635274, #c4b4d8);
+  --border: light-dark(rgba(117,89,154,.28), rgba(185,157,225,.32));
+  --line: light-dark(rgba(117,89,154,.18), rgba(185,157,225,.2));
+  --input: light-dark(rgba(255,255,255,.38), rgba(29,24,49,.42));
+  --hover: light-dark(rgba(255,255,255,.52), rgba(123,98,161,.24));
+  --hover-strong: light-dark(rgba(230,213,253,.64), rgba(154,121,200,.32));
+  --blue: light-dark(#245c91, #9ad8f7);
+  --blue-soft: light-dark(rgba(89,171,220,.17), rgba(89,171,220,.2));
+  --purple: light-dark(#7541a2, #dbb2ff);
+  --purple-soft: light-dark(rgba(166,112,220,.16), rgba(166,112,220,.2));
+  --orange: light-dark(#8c4b22, #ffc99a);
+  --orange-soft: light-dark(rgba(240,165,95,.18), rgba(240,165,95,.2));
+  --red: light-dark(#a12f4c, #ffb4c8);
+  --red-soft: light-dark(rgba(230,99,140,.15), rgba(230,99,140,.2));
+  --chart-grid: var(--line);
+  --chart-fill: light-dark(rgba(155,110,217,.18), rgba(187,145,237,.22));
+  --tooltip-bg: var(--panel);
+  --dream-glass: light-dark(rgba(255,255,255,.24), rgba(28,22,52,.34));
+  --dream-glass-border: light-dark(rgba(255,255,255,.65), rgba(150,130,220,.28));
+  --dream-shadow: 0 12px 40px light-dark(rgba(124,92,224,.16), rgba(0,0,0,.35));
+  --surface-shadow: var(--dream-shadow);
+  --dream-blur: blur(28px) saturate(1.35);
+  --dream-control-blur: blur(16px) saturate(1.3);
+  --dream-sheen: linear-gradient(135deg, light-dark(rgba(255,255,255,.24), rgba(222,200,255,.07)), transparent 42%, light-dark(rgba(91,208,214,.09), rgba(91,208,214,.06)));
+  --dream-overlay: light-dark(rgba(47,32,77,.12), rgba(8,5,20,.24));
+  --overlay: var(--dream-overlay);
+  color: var(--text);
+  background:
+    linear-gradient(25deg, light-dark(rgba(119,220,204,.48), rgba(26,126,120,.35)), transparent 48%),
+    linear-gradient(145deg, light-dark(rgba(255,159,205,.66), rgba(153,52,102,.4)), transparent 58%),
+    linear-gradient(215deg, light-dark(rgba(123,184,250,.62), rgba(48,99,164,.48)), transparent 62%),
+    linear-gradient(125deg, light-dark(#f9cde1, #342037), light-dark(#d4c6f5, #252b4b) 46%, light-dark(#a6dedb, #153d40));
+  background-attachment: fixed;
+}
+
+:scope > .titlebar {
+  padding-left: calc(var(--sidebar-width) + 28px);
+  background: linear-gradient(light-dark(rgba(255,255,255,.38), rgba(30,24,56,.44)), light-dark(rgba(255,255,255,.12), rgba(30,24,56,.2)));
+  backdrop-filter: var(--dream-blur);
+  color: var(--text);
+}
+:scope.platform-darwin > .titlebar { padding-left: 112px; }
+.titlebar-actions button { border-radius: 10px; }
+.titlebar-actions button:hover {
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 4px light-dark(rgba(139,110,232,.08), rgba(183,154,255,.1));
+}
+
+/* Explicit platform selector also overrides the default rounding in older Lumi builds. */
+:scope > .sidebar, :scope.platform-win32 > .sidebar {
+  border-radius: 20px;
+  padding: 22px 14px;
+  background: var(--dream-glass);
+  backdrop-filter: var(--dream-blur);
+  border: 1px solid var(--dream-glass-border);
+  box-shadow: var(--dream-shadow), inset 0 1px 0 var(--dream-glass-border);
+}
+.sidebar-navigation { padding: 6px 2px; }
+.sidebar-footer { border-top: 1px solid var(--border); padding: 12px 2px 0; }
+.sidebar-footer :is(.sidebar-update, .sidebar-site) { margin-inline: 0; }
+.sidebar-update { border-radius: 8px; }
+.tool-config-card .endpoint-display {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background-color: var(--panel-soft);
+}
+
+.nav-item { height: 42px; margin: 2px 0; border-radius: 14px; }
+.nav-item:hover { background: var(--accent-soft); }
+.nav-item.active, .nav-item.active:hover {
+  background: linear-gradient(120deg, #8055ce, #a064cc);
+  /* Default navigation text has an important declaration in existing hosts. */
+  color: #fff !important;
+  border-color: transparent;
+  box-shadow: 0 6px 18px rgba(139,110,232,.25);
+}
+.nav-item.active .nav-active-dot { background: #fff; }
+:scope .button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: light-dark(#fff, #201634);
+}
+:scope .button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+:scope > .main-area {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  background: var(--dream-sheen) light-dark(rgba(255,255,255,.14), rgba(24,20,46,.2));
+  backdrop-filter: var(--dream-blur);
+  border: 1px solid var(--dream-glass-border);
+  box-shadow: 0 18px 50px light-dark(rgba(124,92,224,.12), rgba(0,0,0,.35));
+}
+.content-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: transparent;
+}
+.content-container {
+  padding: 22px 24px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+/* Edge glass stays outside the scrolling layer and never intercepts input. */
+:scope > .main-area::before, :scope > .main-area::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  height: 24px;
+  z-index: 10;
+  pointer-events: none;
+  backdrop-filter: blur(12px) saturate(1.2);
+  background: light-dark(rgba(255,255,255,.12), rgba(24,20,46,.16));
+}
+:scope > .main-area::before {
+  top: 0;
+  mask-image: linear-gradient(#000, transparent);
+}
+:scope > .main-area::after {
+  bottom: 0;
+  mask-image: linear-gradient(transparent, #000);
+}
+.app-statusbar {
+  background: var(--dream-glass);
+  backdrop-filter: var(--dream-blur);
+  border-top: 1px solid var(--dream-glass-border);
+}
+
+/* Translucent surfaces need their own blur, including scoped overlay portals. */
+:is(.surface, .panel, .stat-card, .tool-config-card, .model-card, .billing-tool, .billing-total, .token-overview-card, .site-row, .model-choice, .local-session-event, .backup-list > div, .welcome-features > div, .welcome-hero) {
+  background-image: var(--dream-sheen);
+  backdrop-filter: blur(20px) saturate(1.25);
+  box-shadow: inset 0 1px 0 var(--dream-glass-border);
+}
+/* Shared tokens tint all host components; controls and inset surfaces get lighter glass. */
+:is(.button, .global-search, .nav-item, .icon-button, .avatar, .text-input, .search-input, .select-wrap select, .multi-trigger, .favorite-filter, .context-setting input, .local-session-pagination input, .theme-options > button, .local-session-tabs button, .settings-subnav button, .page-tabs button, .vendor-tabs > button, .metric-tabs button, .segmented, .segmented button, .pill, .recent-status, .brand-icon, .tool-icon, .stat-symbol, .quality-icon) {
+  backdrop-filter: var(--dream-control-blur);
+}
+:is(.button:not(.primary):not(.danger):not(.ghost), .global-search, .text-input, .search-input, .select-wrap select, .multi-trigger, .favorite-filter, .context-setting input, .local-session-pagination input) {
+  background-image: var(--dream-sheen);
+  box-shadow: inset 0 1px 0 var(--dream-glass-border);
+}
+:is(.current-config, .route-detail, .code-preview, .pricing-expression, .raw-detail pre, .info-note, .safety-panel, .token-help, .key-info-token, .token-key-value, .endpoint-display, .tool-runtime, .sidebar-tip, .sidebar-update, .calendar-summary, .release-notes-scroll, .refresh-animation-preview, .runtime-log-scroll, .runtime-log-columns, .local-session-first-prompt pre, .local-session-raw, .local-session-association, .warning-banner, .sync-warnings, .http-permission, .login-error, .auto-key-info, .preview-token, .login-trust, .global-search kbd, .search-input kbd, .data-table th, .local-session-records th, .model-card-bottom) {
+  background-image: var(--dream-sheen);
+  backdrop-filter: var(--dream-control-blur);
+}
+.text-input:focus, .search-input:focus-within, .select-wrap select:focus-visible {
+  background-color: var(--panel-strong);
+  box-shadow: inset 0 1px 0 var(--dream-glass-border), 0 0 0 2px var(--accent-soft);
+}
+:is(.button, .global-search, .favorite-filter):hover:not(:disabled):not(.primary):not(.danger) {
+  background-color: var(--hover);
+}
+:scope .button.primary {
+  background-image: linear-gradient(135deg, light-dark(rgba(255,255,255,.16), rgba(255,255,255,.1)), transparent);
+  box-shadow: 0 4px 12px light-dark(rgba(128,85,206,.22), rgba(0,0,0,.2)), inset 0 1px 0 rgba(255,255,255,.2);
+}
+input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--accent); }
+:is(.data-table, .runtime-log-table) tbody tr:nth-child(even) { background-color: var(--panel-soft); }
+:is(.data-table, .runtime-log-table) tbody tr:hover { background-color: var(--hover); }
+:is(.data-table, .runtime-log-table) tbody tr.error { background-color: var(--red-soft); }
+:is(.data-table, .runtime-log-table) tbody tr.warn { background-color: var(--orange-soft); }
+.modal-overlay {
+  background: var(--dream-overlay);
+  backdrop-filter: blur(8px) saturate(1.1);
+}
+:is(.modal, .modal.surface, .multi-popover, .toast, .recharts-default-tooltip, .donut-tooltip) {
+  background-image: var(--dream-sheen);
+  backdrop-filter: blur(36px) saturate(1.4);
+  border-color: var(--dream-glass-border);
+  box-shadow: var(--dream-shadow), inset 0 1px 0 var(--dream-glass-border);
+}
+/* A blurred ancestor captures fixed dialogs; restore viewport positioning while open. */
+:scope :has(.modal-overlay) {
+  backdrop-filter: none !important;
+}
+.select-wrap {
+  --dream-choice-height: 40px;
+  --dream-choice-radius: 13px;
+  --dream-choice-padding-block: 10px;
+  --dream-choice-padding-start: 31px;
+  --dream-choice-padding-end: 34px;
+  --dream-choice-dot-size: 7px;
+  --dream-choice-dot-gap: 10px;
+}
+.setting-control .select-wrap { --dream-choice-height: 36px; }
+.tool-config-card .select-wrap {
+  --dream-choice-height: 36px;
+  --dream-choice-radius: 9px;
+  --dream-choice-padding-block: 8px;
+}
+.model-card-actions .select-wrap {
+  --dream-choice-height: 28px;
+  --dream-choice-padding-block: 5px;
+  --dream-choice-padding-start: 19px;
+  --dream-choice-padding-end: 24px;
+  --dream-choice-dot-size: 5px;
+  --dream-choice-dot-gap: 6px;
+}
+.model-channel-select {
+  --dream-choice-height: 32px;
+  --dream-choice-padding-block: 5px;
+}
+.date-time-month .select-wrap {
+  --dream-choice-height: 34px;
+  --dream-choice-padding-block: 6px;
+}
+.trend-controls .select-wrap {
+  --dream-choice-height: 32px;
+  --dream-choice-radius: 8px;
+  --dream-choice-padding-block: 5px;
+  --dream-choice-padding-end: 30px;
+}
+.sidebar-site .site-switch {
+  --dream-choice-height: 33px;
+  --dream-choice-radius: 11px;
+  --dream-choice-padding-block: 7px;
+  --dream-choice-padding-start: 23px;
+  --dream-choice-padding-end: 26px;
+  --dream-choice-dot-size: 5px;
+  --dream-choice-dot-gap: 5px;
+}
+.select-wrap[data-decorated="false"] { --dream-choice-padding-start: 13px; }
+.trend-controls .select-wrap[data-decorated="false"] { --dream-choice-padding-start: 10px; }
+/* The trigger and its options share geometry, including compact host controls. */
+:scope .select-wrap select {
+  box-sizing: border-box;
+  block-size: max(var(--dream-choice-height), calc(1lh + 2 * var(--dream-choice-padding-block) + 2px));
+  min-block-size: var(--dream-choice-height);
+}
+@supports (appearance: base-select) {
+  .select-wrap select::picker(select) {
+    box-sizing: border-box;
+    inline-size: anchor-size(width);
+    min-inline-size: anchor-size(width);
+    max-inline-size: anchor-size(width);
+    scrollbar-width: none;
+    padding: 0;
+    border-width: 0;
+    border-radius: var(--dream-choice-radius);
+    font: inherit;
+    background: var(--panel);
+    background-image: var(--dream-sheen);
+    backdrop-filter: blur(36px) saturate(1.4);
+    border-color: var(--dream-glass-border);
+    box-shadow: var(--dream-shadow), inset 0 1px 0 var(--dream-glass-border);
+  }
+  :scope .select-wrap select option {
+    box-sizing: border-box;
+    inline-size: 100%;
+    block-size: max(var(--dream-choice-height), calc(1lh + 2 * var(--dream-choice-padding-block) + 2px));
+    min-block-size: var(--dream-choice-height);
+    line-height: inherit;
+    padding-block: var(--dream-choice-padding-block);
+    padding-inline: calc(var(--dream-choice-padding-start) - var(--dream-choice-dot-size) - var(--dream-choice-dot-gap)) var(--dream-choice-padding-end);
+    margin: 0;
+    gap: var(--dream-choice-dot-gap);
+    border-radius: var(--dream-choice-radius);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :scope .select-wrap select option::before {
+    flex-basis: var(--dream-choice-dot-size);
+    height: var(--dream-choice-dot-size);
+    margin: 0;
+  }
+  :scope .select-wrap[data-decorated="false"] select option {
+    padding-inline-start: var(--dream-choice-padding-start);
+  }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  :scope {
+    --panel: light-dark(rgba(255,255,255,.96), rgba(35,28,62,.96));
+    --panel-strong: var(--panel);
+    --panel-soft: light-dark(#efe8fa, #30264b);
+    --input: var(--panel);
+    --dream-glass: var(--panel);
+  }
+  :scope > .main-area { background: var(--panel); }
+  :scope > .titlebar { background: var(--panel); }
+}
+.content-scroll::-webkit-scrollbar { width: 10px; }
+.content-scroll::-webkit-scrollbar-track { background: transparent; }
+.content-scroll::-webkit-scrollbar-thumb { background: light-dark(rgba(139,110,232,.3), rgba(183,154,255,.3)); border-radius: 8px; }
+.content-scroll::-webkit-scrollbar-thumb:hover { background: light-dark(rgba(139,110,232,.45), rgba(183,154,255,.45)); }
+
+@media (max-width: 1100px) {
+  :scope { --sidebar-width: 188px; --shell-inset: 10px; }
+  :scope > .main-area { border-radius: 18px; }
+  .content-container { padding: 16px; }
+}
