@@ -1,0 +1,33 @@
+name: Release extension
+
+on:
+  push:
+    tags: ['extension.*-v*']
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+      - run: npm ci --ignore-scripts
+      - run: npm run setup:host
+      - run: npm run check
+      - name: Build tagged plugin package
+        shell: bash
+        run: npm run package -- "${GITHUB_REF_NAME%-v*}"
+      - name: Publish plugin release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh release create "$GITHUB_REF_NAME" release/*.zip release/*.sha256 --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
