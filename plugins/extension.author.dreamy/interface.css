@@ -33,8 +33,9 @@
   --dream-glass-border: light-dark(rgba(255,255,255,.65), rgba(150,130,220,.28));
   --dream-shadow: 0 12px 40px light-dark(rgba(124,92,224,.16), rgba(0,0,0,.35));
   --surface-shadow: var(--dream-shadow);
-  --dream-blur: blur(28px) saturate(1.35);
-  --dream-control-blur: blur(16px) saturate(1.3);
+  --dream-blur: blur(12px);
+  --dream-popup-blur: blur(12px);
+  --dream-edge: light-dark(rgba(255,255,255,.12), rgba(24,20,46,.16));
   --dream-sheen: linear-gradient(135deg, light-dark(rgba(255,255,255,.24), rgba(222,200,255,.07)), transparent 42%, light-dark(rgba(91,208,214,.09), rgba(91,208,214,.06)));
   --dream-overlay: light-dark(rgba(47,32,77,.12), rgba(8,5,20,.24));
   --overlay: var(--dream-overlay);
@@ -44,7 +45,6 @@
     linear-gradient(145deg, light-dark(rgba(255,159,205,.66), rgba(153,52,102,.4)), transparent 58%),
     linear-gradient(215deg, light-dark(rgba(123,184,250,.62), rgba(48,99,164,.48)), transparent 62%),
     linear-gradient(125deg, light-dark(#f9cde1, #342037), light-dark(#d4c6f5, #252b4b) 46%, light-dark(#a6dedb, #153d40));
-  background-attachment: fixed;
 }
 
 :scope > .titlebar {
@@ -103,7 +103,6 @@
   overflow: hidden;
   border-radius: 22px;
   background: var(--dream-sheen) light-dark(rgba(255,255,255,.14), rgba(24,20,46,.2));
-  backdrop-filter: var(--dream-blur);
   border: 1px solid var(--dream-glass-border);
   box-shadow: 0 18px 50px light-dark(rgba(124,92,224,.12), rgba(0,0,0,.35));
 }
@@ -122,7 +121,7 @@
   backdrop-filter: none;
   box-shadow: none;
 }
-/* Edge glass stays outside the scrolling layer and never intercepts input. */
+/* Static edge tints avoid filtering the content on every scroll frame. */
 :scope > .main-area::before, :scope > .main-area::after {
   content: '';
   position: absolute;
@@ -130,40 +129,32 @@
   height: 24px;
   z-index: 10;
   pointer-events: none;
-  backdrop-filter: blur(12px) saturate(1.2);
-  background: light-dark(rgba(255,255,255,.12), rgba(24,20,46,.16));
 }
 :scope > .main-area::before {
   top: 0;
-  mask-image: linear-gradient(#000, transparent);
+  background: linear-gradient(var(--dream-edge), transparent);
 }
 :scope > .main-area::after {
   bottom: 0;
-  mask-image: linear-gradient(transparent, #000);
+  background: linear-gradient(transparent, var(--dream-edge));
 }
 .app-statusbar {
   background: var(--dream-glass);
-  backdrop-filter: var(--dream-blur);
   border-top: 1px solid var(--dream-glass-border);
 }
 
-/* Translucent surfaces need their own blur, including scoped overlay portals. */
+/* The shell background is already soft; repeated surfaces only need tint and sheen. */
 :is(.surface, .panel, .stat-card, .tool-config-card, .model-card, .billing-tool, .billing-total, .token-overview-card, .site-row, .model-choice, .local-session-event, .backup-list > div, .welcome-features > div, .welcome-hero) {
   background-image: var(--dream-sheen);
-  backdrop-filter: blur(20px) saturate(1.25);
   box-shadow: inset 0 1px 0 var(--dream-glass-border);
 }
-/* Shared tokens tint all host components; controls and inset surfaces get lighter glass. */
-:is(.button, .global-search, .nav-item, .icon-button, .avatar, .text-input, .search-input, .select-wrap select, .multi-trigger, .favorite-filter, .context-setting input, .local-session-pagination input, .theme-options > button, .local-session-tabs button, .settings-subnav button, .page-tabs button, .vendor-tabs > button, .metric-tabs button, .segmented, .segmented button, .pill, .recent-status, .brand-icon, .tool-icon, .stat-symbol, .quality-icon) {
-  backdrop-filter: var(--dream-control-blur);
-}
+/* Controls and inset surfaces share the translucent palette without extra blur layers. */
 :is(.button:not(.primary):not(.danger):not(.ghost), .global-search, .text-input, .search-input, .select-wrap select, .multi-trigger, .favorite-filter, .context-setting input, .local-session-pagination input) {
   background-image: var(--dream-sheen);
   box-shadow: inset 0 1px 0 var(--dream-glass-border);
 }
 :is(.current-config, .route-detail, .code-preview, .pricing-expression, .raw-detail pre, .info-note, .safety-panel, .token-help, .key-info-token, .token-key-value, .endpoint-display, .tool-runtime, .sidebar-tip, .sidebar-update, .calendar-summary, .release-notes-scroll, .refresh-animation-preview, .runtime-log-scroll, .runtime-log-columns, .local-session-first-prompt pre, .local-session-raw, .local-session-association, .warning-banner, .sync-warnings, .http-permission, .login-error, .auto-key-info, .preview-token, .login-trust, .global-search kbd, .search-input kbd, .data-table th, .local-session-records th, .model-card-bottom) {
   background-image: var(--dream-sheen);
-  backdrop-filter: var(--dream-control-blur);
 }
 .text-input:focus, .search-input:focus-within, .select-wrap select:focus-visible {
   background-color: var(--panel-strong);
@@ -183,11 +174,11 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 :is(.data-table, .runtime-log-table) tbody tr.warn { background-color: var(--orange-soft); }
 .modal-overlay {
   background: var(--dream-overlay);
-  backdrop-filter: blur(8px) saturate(1.1);
 }
 :is(.modal, .modal.surface, .multi-popover, .toast, .recharts-default-tooltip, .donut-tooltip) {
+  background-color: var(--panel-strong);
   background-image: var(--dream-sheen);
-  backdrop-filter: blur(36px) saturate(1.4);
+  backdrop-filter: var(--dream-popup-blur);
   border-color: var(--dream-glass-border);
   box-shadow: var(--dream-shadow), inset 0 1px 0 var(--dream-glass-border);
 }
@@ -260,9 +251,9 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
     border-width: 0;
     border-radius: var(--dream-choice-radius);
     font: inherit;
-    background: var(--panel);
+    background: var(--panel-strong);
     background-image: var(--dream-sheen);
-    backdrop-filter: blur(36px) saturate(1.4);
+    backdrop-filter: var(--dream-popup-blur);
     border-color: var(--dream-glass-border);
     box-shadow: var(--dream-shadow), inset 0 1px 0 var(--dream-glass-border);
   }
