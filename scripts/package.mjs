@@ -21,7 +21,9 @@ const output = path.join(root, 'release');
 mkdirSync(output, {recursive: true});
 const name = `${tag}.zip`;
 const file = path.join(output, name);
-run('git', ['archive', '--format=zip', `--prefix=${id}/`, `--output=${file}`, `HEAD:plugins/${id}`]);
+// Subtree archives do not inherit the repository root's .gitattributes.
+// Preserve committed bytes instead of applying the maintainer's Windows CRLF preference.
+run('git', ['-c', 'core.autocrlf=false', 'archive', '--format=zip', `--prefix=${id}/`, `--output=${file}`, `HEAD:plugins/${id}`]);
 const hash = createHash('sha256').update(readFileSync(file)).digest('hex');
 writeFileSync(path.join(output, `${tag}.sha256`), `${hash}  ${name}\n`);
 console.log(`发布包：${file}`);
