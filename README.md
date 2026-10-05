@@ -8,7 +8,7 @@ Lumi 官方维护的独立功能插件和界面插件。每个插件独立版本
 | --- | --- | --- | --- | --- |
 | [工作台便笺](plugins/extension.lumi.notes) | 功能 | 工作台、侧栏和设置中的便笺 | storage | Lumi 0.5.1 / API v1 |
 | [紧凑界面](plugins/extension.lumi.compact) | 界面 | 紧凑侧栏、间距与强调色 | 无 | Lumi 0.5.1 / API v1 |
-| [浮梦 · 梦幻界面](plugins/extension.author.dreamy) | 界面 | 可配置液态玻璃、同步弹窗虚化与圆角框架 | 无 | Lumi 0.5.12 / API v1 |
+| [浮梦 · 梦幻界面](plugins/extension.author.dreamy) | 界面 | 可配置液态玻璃、同步弹窗虚化与圆角框架 | 无 | Lumi 0.5.13 / API v1 |
 
 ## 安装
 
@@ -30,11 +30,11 @@ npm run check
 npm run check -- plugins/extension.lumi.notes
 ```
 
-`host.json` 固定 Lumi v0.5.12 的完整提交 SHA。准备命令只在忽略的 `.cache/` 下获取宿主源码和校验依赖，不下载或启动 Electron；校验直接复用该版本宿主的官方规则。SDK 类型在 `sdk/lumi-extension.d.ts`，运行时 `lumi-sdk.js` 由 Lumi 提供。
+`host.json` 固定 Lumi v0.5.13 的完整提交 SHA。准备命令只在忽略的 `.cache/` 下获取宿主源码和校验依赖，不下载或启动 Electron；校验直接复用该版本宿主的官方规则。SDK 类型在 `sdk/lumi-extension.d.ts`，运行时 `lumi-sdk.js` 由 Lumi 提供。
 
 `plugins/` 只保存可直接安装的目录包。需要 React/TypeScript 构建的插件可把开发工程放到 `sources/<插件ID>/`，将自包含 web 资源输出到对应 `plugins/<插件ID>/`。不要将依赖树、缓存、密钥或用户数据放入插件包。
 
-完整外部接口及沙箱边界见 [Lumi v0.5.12 插件开发指南](https://github.com/zhaojiseng/lumi/blob/v0.5.12/docs/PLUGIN_DEVELOPMENT.md)。外部插件目前不能注册主进程能力、写入 CLI 配置或访问任意文件系统；界面插件只提供受校验的 CSS。
+完整外部接口及沙箱边界见 [Lumi v0.5.13 插件开发指南](https://github.com/zhaojiseng/lumi/blob/v0.5.13/docs/PLUGIN_DEVELOPMENT.md)。外部插件目前不能注册主进程能力、写入 CLI 配置或访问任意文件系统；界面插件只提供受校验的 CSS。
 
 ## 独立发布
 
