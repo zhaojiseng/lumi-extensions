@@ -189,10 +189,14 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 :is(.data-table, .runtime-log-table) tbody tr:hover { background-color: var(--hover); }
 :is(.data-table, .runtime-log-table) tbody tr.error { background-color: var(--red-soft); }
 :is(.data-table, .runtime-log-table) tbody tr.warn { background-color: var(--orange-soft); }
-.modal-overlay {
+.modal-overlay, .modal-overlay[data-modal-phase="exiting"] {
   --modal-backdrop-filter: var(--dream-dialog-blur);
   background: transparent;
   isolation: isolate;
+  /* An ancestor with opacity < 1 becomes a backdrop root and hides the page
+     from its child's filter. Fade the filtering surface, never its ancestor. */
+  animation: none;
+  opacity: 1;
 }
 /* Only the backdrop is filtered. Keeping it on a separate layer also avoids
    making the overlay a containing block for nested fixed dialogs. Lumi owns
@@ -205,10 +209,12 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
   pointer-events: none;
   background: var(--dream-overlay);
   backdrop-filter: var(--dream-dialog-blur);
-  animation: modal-backdrop-filter-in var(--modal-enter-duration, 180ms) var(--modal-enter-easing, cubic-bezier(.2,.8,.2,1)) both;
+  animation: modal-backdrop-filter-in var(--modal-enter-duration, 180ms) var(--modal-enter-easing, cubic-bezier(.2,.8,.2,1)) both,
+    modal-backdrop-in var(--modal-enter-duration, 180ms) var(--modal-enter-easing, cubic-bezier(.2,.8,.2,1)) both;
 }
 .modal-overlay[data-modal-phase="exiting"]::before {
-  animation: modal-backdrop-filter-out var(--modal-exit-duration, 160ms) var(--modal-exit-easing, ease-in) both;
+  animation: modal-backdrop-filter-out var(--modal-exit-duration, 160ms) var(--modal-exit-easing, ease-in) both,
+    modal-backdrop-out var(--modal-exit-duration, 160ms) var(--modal-exit-easing, ease-in) both;
 }
 @media (prefers-reduced-motion: reduce) {
   .modal-overlay::before { animation: none !important; }

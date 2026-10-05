@@ -8,7 +8,7 @@ Lumi 官方维护的独立功能插件和界面插件。每个插件独立版本
 | --- | --- | --- | --- | --- |
 | [工作台便笺](plugins/extension.lumi.notes) | 功能 | 工作台、侧栏和设置中的便笺 | storage | Lumi 0.5.1 / API v1 |
 | [紧凑界面](plugins/extension.lumi.compact) | 界面 | 紧凑侧栏、间距与强调色 | 无 | Lumi 0.5.1 / API v1 |
-| [浮梦 · 梦幻界面](plugins/extension.author.dreamy) | 界面 | 柔彩背景、磨砂组件、同步弹窗虚化与圆角框架 | 无 | Lumi 0.5.7 / API v1 |
+| [浮梦 · 梦幻界面](plugins/extension.author.dreamy) | 界面 | 柔彩背景、磨砂组件、同步弹窗虚化与圆角框架 | 无 | Lumi 0.5.8 / API v1 |
 
 ## 安装
 

@@ -30,7 +30,7 @@ function App(){const [parent,setParent]=useState(false),[child,setChild]=useStat
 fixture.setParent=setParent;
 return <div className="desktop-shell platform-win32" data-interface={id} data-theme="light"><div className="titlebar"><span>Dreamy UI 验证</span></div><aside className="sidebar"><h2>浮梦</h2><p>本地模拟数据</p><div className="sidebar-navigation"><button>工作台</button><button>设置</button></div></aside><main className="main-area"><div className="content-scroll"><div className="content-container"><h1>弹层背景虚化</h1><div className="fixture-actions"><Button onClick={()=>setParent(true)}>打开插件详情</Button><Button onClick={()=>setSearch(true)}>打开搜索</Button><MultiSelect label="模型" value={models} onApply={setModels} options={[{value:'standard',label:'标准模型'},{value:'long',label:'带有很长名称的模型选项 / 272K / Fast / 缓存计费说明'}]}/></div><div id="checker"/><div className="fixture-cards">{Array.from({length:12},(_,i)=><article className="surface panel" key={i}><h3>用量与模型 {i+1}</h3><p>输入 128K · 输出 12K · 净速率 48 token/s</p><p>背景文字应虚化，弹窗文字保持清晰。</p></article>)}</div></div></div></main>
 <div className="fixture-narrow"><MultiSelect label="模型" value={models} onApply={setModels} options={Array.from({length:20},(_,i)=>({value:'narrow-'+i,label:'模型 '+(i+1)+' / 272K / Fast / 完整缓存计费说明与较长名称'}))}/></div>
-<ModalPresence exitMs={fixture.motionChecks ? 5000 : 240}>{parent && <Modal title="插件详情" subtitle="历史价格与工具选项" portal onClose={()=>setParent(false)}><p>普通输入 $2 / 1M Tokens，输出 $10 / 1M Tokens。</p><label className="field-label">请求模式</label><Select label="请求模式" value={mode} onChange={setMode}><option value="normal">普通 · 默认</option><option value="fast">Fast · 倍率 ×2</option><option value="long">包含完整缓存、上下文及长名称的计费档位选项</option></Select><label className="field-label">未保存草稿</label><input aria-label="未保存草稿" className="text-input" defaultValue="草稿应清晰"/><div className="modal-actions"><Button onClick={()=>setChild(true)}>编辑站点</Button><Button onClick={()=>setParent(false)}>关闭详情</Button></div><ModalPresence>{child && <Modal title="编辑站点" onClose={()=>setChild(false)}><label className="field-label">站点名称</label><input className="text-input" aria-label="站点名称" defaultValue="Fixture"/><p>子弹窗清晰，后方的父弹窗虚化。</p><div className="modal-actions"><Button onClick={()=>setChild(false)}>完成编辑</Button></div></Modal>}</ModalPresence></Modal>}</ModalPresence>
+<ModalPresence exitMs={fixture.motionChecks ? 60000 : 240}>{parent && <Modal title="插件详情" subtitle="历史价格与工具选项" portal onClose={()=>setParent(false)}><p>普通输入 $2 / 1M Tokens，输出 $10 / 1M Tokens。</p><label className="field-label">请求模式</label><Select label="请求模式" value={mode} onChange={setMode}><option value="normal">普通 · 默认</option><option value="fast">Fast · 倍率 ×2</option><option value="long">包含完整缓存、上下文及长名称的计费档位选项</option></Select><label className="field-label">未保存草稿</label><input aria-label="未保存草稿" className="text-input" defaultValue="草稿应清晰"/><div className="modal-actions"><Button onClick={()=>setChild(true)}>编辑站点</Button><Button onClick={()=>setParent(false)}>关闭详情</Button></div><ModalPresence>{child && <Modal title="编辑站点" onClose={()=>setChild(false)}><label className="field-label">站点名称</label><input className="text-input" aria-label="站点名称" defaultValue="Fixture"/><p>子弹窗清晰，后方的父弹窗虚化。</p><div className="modal-actions"><Button onClick={()=>setChild(false)}>完成编辑</Button></div></Modal>}</ModalPresence></Modal>}</ModalPresence>
 <ModalPresence>{search && <Modal title="随时找到你需要的" subtitle="搜索页面、模型或开发工具" portal onClose={()=>setSearch(false)}><div className="search-input command-search"><input aria-label="搜索工作台内容" placeholder="搜索工作台…"/><kbd>ESC</kbd></div><div className="command-results"><button><div><strong>模型广场</strong><span>查看上下文档位与 Fast 价格</span></div></button></div></Modal>}</ModalPresence></div>;
 }
 createRoot(document.getElementById('root')).render(<App/>);
@@ -40,22 +40,52 @@ createRoot(document.getElementById('root')).render(<App/>);
   const css=await Promise.all(styleFiles.map(file=>readFile(path.join(host,'src',file),'utf8')));
   await writeFile(path.join(fixture,'style.css'),css.join('\n')+'\n.fixture-actions{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}.fixture-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.fixture-cards p{font-size:13px;line-height:1.6}#checker{position:fixed;left:270px;top:100px;width:100px;height:80px;background:repeating-linear-gradient(90deg,#111 0 4px,#fafafa 4px 8px);pointer-events:none}.fixture-narrow{display:none}html[data-fixture-narrow] body{min-width:0}html[data-fixture-narrow] .fixture-narrow{display:block;position:fixed;left:8px;top:8px;z-index:80}html[data-fixture-narrow] .desktop-shell>:is(.titlebar,.sidebar,.main-area){visibility:hidden}');
   await writeFile(path.join(fixture,'index.html'),'<html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"></head><body><div id="root"></div><script type="module" src="app.js"></script></body></html>');
-  const configuration={output,version:manifest.version,hostVersion:hostManifest.version,narrowOnly:process.argv.includes('--narrow-only'),motionOnly:process.argv.includes('--motion-only')};
+  const configuration={output,version:manifest.version,hostVersion:hostManifest.version,narrowOnly:process.argv.includes('--narrow-only'),motionOnly:process.argv.includes('--motion-only'),pixelsOnly:process.argv.includes('--pixels-only'),hardware:process.argv.includes('--hardware')};
   await writeFile(path.join(fixture,'main.cjs'),String.raw`
 const {app,BrowserWindow}=require('electron'),fs=require('node:fs'),path=require('node:path');
 const config=JSON.parse(process.argv[2]);
-for(const name of ['userData','sessionData','logs','crashDumps']){const dir=path.join(__dirname,name);fs.mkdirSync(dir,{recursive:true});app.setPath(name,dir);}app.disableHardwareAcceleration();
+for(const name of ['userData','sessionData','logs','crashDumps']){const dir=path.join(__dirname,name);fs.mkdirSync(dir,{recursive:true});app.setPath(name,dir);}if(!config.hardware)app.disableHardwareAcceleration();
 app.whenReady().then(async()=>{
 const win=new BrowserWindow({width:1280,height:900,useContentSize:true,show:false,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false,backgroundThrottling:false}});await win.loadFile(path.join(__dirname,'index.html'));win.webContents.focus();
 const run=async(fn,...args)=>{const result=await win.webContents.executeJavaScript('(async()=>{try{return {ok:true,value:await ('+fn.toString()+')(...'+JSON.stringify(args)+')}}catch(error){return {ok:false,error:error.stack||String(error)}}})()');if(!result.ok)throw new Error(result.error);return result.value;};
 const ready=async()=>run(async()=>{const end=performance.now()+7000;while(!document.querySelector('.fixture-actions')){if(performance.now()>end)throw new Error('Fixture not ready');await new Promise(r=>setTimeout(r,20));}});
 const settle=async()=>run(async()=>{await new Promise(r=>setTimeout(r,260));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));});
-const capture=async name=>fs.writeFileSync(path.join(config.output,name+'.png'),(await win.webContents.capturePage()).toPNG());
-const measure=async()=>{const data=(await win.webContents.capturePage({x:280,y:110,width:80,height:50})).toBitmap();let sum=0,squares=0,count=0;for(let i=0;i<data.length;i+=4){const v=(data[i]+data[i+1]+data[i+2])/3;sum+=v;squares+=v*v;count++;}return Math.sqrt(Math.max(0,squares/count-(sum/count)**2));};
+const capture=async name=>fs.writeFileSync(path.join(config.output,name+'.png'),(await win.webContents.capturePage(undefined,{stayHidden:true,stayAwake:true})).toPNG());
+const measure=async()=>{const data=(await win.webContents.capturePage({x:280,y:110,width:80,height:50},{stayHidden:true,stayAwake:true})).toBitmap();let sum=0,squares=0,count=0;for(let i=0;i<data.length;i+=4){const v=(data[i]+data[i+1]+data[i+2])/3;sum+=v;squares+=v*v;count++;}return Math.sqrt(Math.max(0,squares/count-(sum/count)**2));};
 const check=async(fn,...args)=>run(fn,...args);
-await ready();const results=[],narrowResults=[],motionResults=[];
+const paint=async()=>run(async()=>{await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Pixel frame did not paint within 6000ms')),6000);requestAnimationFrame(()=>requestAnimationFrame(()=>{clearTimeout(timeout);resolve();}));});});
+await ready();const results=[],narrowResults=[],motionResults=[],pixelResults=[];
 if(!config.narrowOnly){
 await win.webContents.debugger.attach('1.3');await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});win.webContents.debugger.detach();
+for(const mode of ['light','dark']){
+await run(mode=>{fixture.setTheme(mode,true);fixture.motionChecks=true;},mode);
+for(const opening of [true,false]){
+await run(async opening=>{
+ const end=performance.now()+6000;fixture.setParent(opening);
+ while(document.querySelector('.modal-overlay')?.dataset.modalPhase!==(opening ? 'open' : 'exiting')){if(performance.now()>end)throw new Error('Pixel fixture phase not ready');await new Promise(r=>setTimeout(r,10));}
+ const overlay=document.querySelector('.modal-overlay'),animations=overlay.getAnimations({subtree:true});if(!animations.length)throw new Error('Pixel fixture has no animations');animations.forEach(a=>a.pause());await Promise.all(animations.map(a=>a.ready));fixture.pixelPhase={overlay,animations};
+},opening);
+const samples=[];
+for(const fraction of [0,.25,.5,.75,1]){
+const state=await run(fraction=>{const {overlay,animations}=fixture.pixelPhase;animations.forEach(a=>a.currentTime=a.effect.getTiming().duration*fraction);const style=getComputedStyle(overlay,'::before');return {blur:style.backdropFilter,opacity:getComputedStyle(overlay).opacity,backdropOpacity:style.opacity};},fraction);
+await paint();const blurred=await measure();
+await run(()=>{const o=fixture.pixelPhase.overlay;o.style.setProperty('--modal-backdrop-filter','blur(0px)');if(parseFloat(getComputedStyle(o,'::before').backdropFilter.replace('blur(','') || '0')>0)throw new Error('Unfiltered pixel baseline did not disable blur');});
+await paint();const baseline=await measure();await run(()=>fixture.pixelPhase.overlay.style.removeProperty('--modal-backdrop-filter'));
+if(baseline<5)throw new Error('Pixel baseline lacks visible checker contrast '+baseline);
+samples.push({fraction,...state,blurredContrast:blurred,baselineContrast:baseline,ratio:blurred/baseline});
+if(fraction===.5)await capture('dreamy-blur-mid-'+mode+'-'+(opening ? 'open' : 'close')+(config.hardware ? '-gpu' : '-software'));
+}
+console.log('DREAMY_BLUR_PIXELS '+JSON.stringify({mode,direction:opening ? 'open' : 'close',samples}));
+if(samples.slice(1,-1).some(sample=>sample.ratio>.94))throw new Error('Rendered backdrop snaps instead of blurring at intermediate frames '+JSON.stringify({mode,opening,samples}));
+if((opening ? samples.at(-1) : samples[0]).ratio>.2)throw new Error('Rendered backdrop never reaches full blur '+JSON.stringify(samples));
+if((opening ? samples[0] : samples.at(-1)).ratio<.98)throw new Error('Rendered backdrop is not clear at its unblurred endpoint '+JSON.stringify(samples));
+pixelResults.push({mode,direction:opening ? 'open' : 'close',samples});
+await run(async opening=>{fixture.pixelPhase.animations.forEach(a=>a.finish());if(!opening){const end=performance.now()+6000;while(document.querySelector('.modal-overlay')){if(performance.now()>end)throw new Error('Pixel fixture did not close');await new Promise(r=>setTimeout(r,10));}}delete fixture.pixelPhase;},opening);
+}
+await run(()=>fixture.motionChecks=false);
+}
+}
+if(!config.narrowOnly && !config.pixelsOnly){
 for(const mode of ['light','dark'])for(const custom of [false,true]){
 const probe=await run(async(mode,custom)=>{
  const until=async fn=>{const end=performance.now()+6000;while(!fn()){if(performance.now()>end)throw new Error('Motion state did not settle '+fn);await new Promise(r=>setTimeout(r,10));}};
@@ -86,7 +116,7 @@ const probe=await run(async(mode,custom)=>{
 },mode,custom);motionResults.push(probe);console.log('DREAMY_MOTION '+JSON.stringify(probe));
 }
 }
-for(const mode of config.narrowOnly || config.motionOnly ? [] : ['light','dark'])for(const reduce of [false,true]){
+for(const mode of config.narrowOnly || config.motionOnly || config.pixelsOnly ? [] : ['light','dark'])for(const reduce of [false,true]){
 await win.webContents.debugger.attach('1.3');await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:reduce ? 'reduce' : 'no-preference'}]});win.webContents.debugger.detach();
 await run((mode)=>{fixture.setTheme(mode,false);document.querySelector('.fixture-actions button').click();},mode);await settle();const baseline=await measure();
 await run(mode=>fixture.setTheme(mode,true),mode);await settle();const blurred=await measure();
@@ -114,7 +144,7 @@ await check(()=>{if(document.querySelector('.multi-popover') || fixture.errors.l
 }
 await win.webContents.debugger.attach('1.3');await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});win.webContents.debugger.detach();
 win.setContentSize(320,240);
-for(const mode of config.motionOnly ? [] : ['light','dark']){
+for(const mode of config.motionOnly || config.pixelsOnly ? [] : ['light','dark']){
 await run(mode=>{document.documentElement.dataset.fixtureNarrow='true';fixture.setTheme(mode,true);},mode);await settle();
 await run(()=>document.querySelector('.fixture-narrow .multi-trigger').click());await settle();
 const measurements=await check(()=>{const p=document.querySelector('.multi-popover'),s=p.querySelector('.search-input'),i=s.querySelector('input'),f=p.querySelector('.multi-actions'),b=f.querySelector('.button.primary'),list=p.querySelector('.multi-options'),r=p.getBoundingClientRect(),sr=s.getBoundingClientRect(),ir=i.getBoundingClientRect(),fr=f.getBoundingClientRect(),br=b.getBoundingClientRect();if(Math.abs(innerWidth-320)>2 || Math.abs(innerHeight-240)>2)throw new Error('Unexpected narrow viewport '+JSON.stringify({width:innerWidth,height:innerHeight}));if(r.left<7 || r.top<7 || r.right>innerWidth-7 || r.bottom>innerHeight-7)throw new Error('Narrow popover outside viewport '+JSON.stringify(r));if(Math.abs(sr.height-34)>.5 || ir.left<sr.left || ir.right>sr.right || ir.top<sr.top || ir.bottom>sr.bottom)throw new Error('Narrow search shrank or input overflowed '+JSON.stringify({search:sr,input:ir}));if(!s.matches(':focus-within') || getComputedStyle(i).outlineStyle!=='none' || !getComputedStyle(s).boxShadow.includes('0px 0px 0px 2px') || parseFloat(getComputedStyle(s).borderRadius)<8)throw new Error('Narrow search lost rounded focus '+JSON.stringify({focused:s.matches(':focus-within'),outline:getComputedStyle(i).outlineStyle,shadow:getComputedStyle(s).boxShadow,radius:getComputedStyle(s).borderRadius}));if(fr.top<sr.bottom || fr.bottom>r.bottom || br.bottom>innerHeight-8 || !br.height || list.scrollHeight<=list.clientHeight)throw new Error('Narrow footer hidden or list cannot scroll '+JSON.stringify({panel:r,footer:fr,apply:br,clientHeight:list.clientHeight,scrollHeight:list.scrollHeight}));return {width:innerWidth,height:innerHeight,searchHeight:sr.height,footerBottom:br.bottom,optionsHeight:list.clientHeight};});await capture('dreamy-popover-narrow-'+mode);narrowResults.push({mode,...measurements});
@@ -125,7 +155,7 @@ await check(()=>{if(document.querySelector('.multi-popover') || !document.queryS
 }
 await run(()=>delete document.documentElement.dataset.fixtureNarrow);win.setContentSize(1280,900);
 await check(()=>{if(fixture.errors.length)throw new Error('Renderer errors '+fixture.errors);});
-const result={pluginVersion:config.version,hostVersion:config.hostVersion,motionScenarios:motionResults,scenarios:results,narrowScenarios:narrowResults};fs.writeFileSync(path.join(config.output,config.narrowOnly ? 'result-narrow.json' : config.motionOnly ? 'result-motion.json' : 'result.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));win.destroy();app.exit(0);
+const result={pluginVersion:config.version,hostVersion:config.hostVersion,hardware:config.hardware,pixelScenarios:pixelResults,motionScenarios:motionResults,scenarios:results,narrowScenarios:narrowResults};fs.writeFileSync(path.join(config.output,config.narrowOnly ? 'result-narrow.json' : config.pixelsOnly ? 'result-pixels-'+(config.hardware ? 'gpu' : 'software')+'.json' : config.motionOnly ? 'result-motion.json' : 'result.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));win.destroy();app.exit(0);
 }).catch(error=>{console.error(error.stack || error);app.exit(1);});
 `);
   const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
