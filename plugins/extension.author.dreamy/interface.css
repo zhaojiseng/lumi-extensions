@@ -1,56 +1,60 @@
-/* 浮梦 Dreamy — follows Lumi's resolved color-scheme, including manual theme choices. */
+/* 浮梦 Dreamy · 液态玻璃 — follows Lumi's resolved color-scheme, including manual theme choices. */
 :scope {
   --sidebar-width: 216px;
   --shell-inset: 14px;
-  --accent: light-dark(#8055ce, #c5a8ff);
-  --accent-foreground: light-dark(#fff, #201634);
-  --accent-soft: light-dark(rgba(128,85,206,.16), rgba(197,168,255,.2));
-  --accent-hover: light-dark(#6b43b4, #ddc8ff);
-  --canvas: light-dark(#f4f0ff, #181430);
-  --panel: light-dark(rgba(255,255,255,.42), rgba(23,22,44,.5));
-  --panel-strong: light-dark(rgba(255,255,255,.68), rgba(43,36,65,.72));
-  --panel-soft: light-dark(rgba(243,235,255,.26), rgba(54,43,79,.3));
-  --text: light-dark(#302443, #f6efff);
-  --text-secondary: light-dark(#4b3e62, #e0d4ee);
-  --text-muted: light-dark(#635274, #c4b4d8);
-  --border: light-dark(rgba(117,89,154,.28), rgba(185,157,225,.32));
-  --line: light-dark(rgba(117,89,154,.18), rgba(185,157,225,.2));
-  --input: light-dark(rgba(255,255,255,.38), rgba(29,24,49,.42));
-  --hover: light-dark(rgba(255,255,255,.52), rgba(123,98,161,.24));
-  --hover-strong: light-dark(rgba(230,213,253,.64), rgba(154,121,200,.32));
-  --blue: light-dark(#245c91, #9ad8f7);
-  --blue-soft: light-dark(rgba(89,171,220,.17), rgba(89,171,220,.2));
-  --purple: light-dark(#7541a2, #dbb2ff);
-  --purple-soft: light-dark(rgba(166,112,220,.16), rgba(166,112,220,.2));
-  --orange: light-dark(#8c4b22, #ffc99a);
-  --orange-soft: light-dark(rgba(240,165,95,.18), rgba(240,165,95,.2));
-  --red: light-dark(#a12f4c, #ffb4c8);
-  --red-soft: light-dark(rgba(230,99,140,.15), rgba(230,99,140,.2));
+  --accent: light-dark(#6a5ae8, #9d92ff);
+  --accent-foreground: light-dark(#fff, #16132e);
+  --accent-soft: light-dark(rgba(106,90,232,.13), rgba(157,146,255,.18));
+  --accent-hover: light-dark(#5849d8, #b7aeff);
+  --canvas: light-dark(#f2f4fb, #181a26);
+  --panel: light-dark(rgba(255,255,255,.46), rgba(26,28,42,.5));
+  --panel-strong: light-dark(rgba(255,255,255,.72), rgba(38,40,58,.72));
+  --panel-soft: light-dark(rgba(250,251,255,.3), rgba(50,52,72,.32));
+  --text: light-dark(#25253a, #f3f4fb);
+  --text-secondary: light-dark(#46465e, #d9dae8);
+  --text-muted: light-dark(#63637b, #b6b7ca);
+  --border: light-dark(rgba(96,96,146,.22), rgba(176,178,224,.26));
+  --line: light-dark(rgba(96,96,146,.14), rgba(176,178,224,.16));
+  --input: light-dark(rgba(255,255,255,.44), rgba(30,32,48,.46));
+  --hover: light-dark(rgba(255,255,255,.56), rgba(122,126,172,.22));
+  --hover-strong: light-dark(rgba(234,238,255,.72), rgba(150,154,204,.3));
+  --blue: light-dark(#1c5fae, #8ecbff);
+  --blue-soft: light-dark(rgba(89,171,220,.16), rgba(89,171,220,.2));
+  --purple: light-dark(#7a4fd0, #cfa9ff);
+  --purple-soft: light-dark(rgba(166,112,220,.15), rgba(166,112,220,.2));
+  --orange: light-dark(#a85a1c, #ffbe8f);
+  --orange-soft: light-dark(rgba(240,165,95,.17), rgba(240,165,95,.2));
+  --red: light-dark(#c03650, #ff9db3);
+  --red-soft: light-dark(rgba(230,99,140,.14), rgba(230,99,140,.2));
   --chart-grid: var(--line);
-  --chart-fill: light-dark(rgba(155,110,217,.18), rgba(187,145,237,.22));
+  --chart-fill: light-dark(rgba(122,110,232,.16), rgba(157,146,255,.22));
   --tooltip-bg: var(--panel);
-  --dream-glass: light-dark(rgba(255,255,255,.24), rgba(28,22,52,.34));
-  --dream-glass-border: light-dark(rgba(255,255,255,.65), rgba(150,130,220,.28));
-  --dream-shadow: 0 12px 40px light-dark(rgba(124,92,224,.16), rgba(0,0,0,.35));
+  /* Liquid glass: clearer fills, deeper blur with vibrancy, specular top edge. */
+  --dream-glass: light-dark(rgba(255,255,255,.34), rgba(22,24,40,.42));
+  --dream-glass-border: light-dark(rgba(255,255,255,.66), rgba(255,255,255,.14));
+  --dream-spec: light-dark(rgba(255,255,255,.82), rgba(255,255,255,.17));
+  --dream-shadow: 0 16px 44px -10px light-dark(rgba(66,60,128,.22), rgba(0,0,0,.42)), 0 2px 10px -2px light-dark(rgba(66,60,128,.1), rgba(0,0,0,.22));
   --surface-shadow: var(--dream-shadow);
-  --dream-blur: blur(12px);
-  --dream-popup-blur: blur(12px);
+  --dream-blur: blur(26px) saturate(1.8);
+  --dream-popup-blur: blur(12px) saturate(1.8);
+  /* Dialog backdrop must stay exactly blur(12px): the host blur animation
+     interpolates to this value and the pixel regression measures its ramp. */
   --dream-dialog-blur: blur(12px);
-  --dream-edge: light-dark(rgba(255,255,255,.12), rgba(24,20,46,.16));
-  --dream-sheen: linear-gradient(135deg, light-dark(rgba(255,255,255,.24), rgba(222,200,255,.07)), transparent 42%, light-dark(rgba(91,208,214,.09), rgba(91,208,214,.06)));
-  --dream-overlay: light-dark(rgba(47,32,77,.12), rgba(8,5,20,.24));
+  --dream-edge: light-dark(rgba(255,255,255,.14), rgba(26,28,46,.18));
+  --dream-sheen: linear-gradient(135deg, light-dark(rgba(255,255,255,.42), rgba(255,255,255,.09)), transparent 42%, light-dark(rgba(147,183,255,.09), rgba(147,183,255,.06)));
+  --dream-overlay: light-dark(rgba(238,240,250,.28), rgba(8,9,18,.32));
   --overlay: var(--dream-overlay);
   color: var(--text);
   background:
-    linear-gradient(25deg, light-dark(rgba(119,220,204,.48), rgba(26,126,120,.35)), transparent 48%),
-    linear-gradient(145deg, light-dark(rgba(255,159,205,.66), rgba(153,52,102,.4)), transparent 58%),
-    linear-gradient(215deg, light-dark(rgba(123,184,250,.62), rgba(48,99,164,.48)), transparent 62%),
-    linear-gradient(125deg, light-dark(#f9cde1, #342037), light-dark(#d4c6f5, #252b4b) 46%, light-dark(#a6dedb, #153d40));
+    radial-gradient(130% 100% at 8% 0%, light-dark(rgba(147,190,255,.55), rgba(44,72,138,.5)), transparent 56%),
+    radial-gradient(110% 90% at 92% 8%, light-dark(rgba(255,176,214,.45), rgba(116,58,122,.38)), transparent 58%),
+    radial-gradient(130% 110% at 50% 108%, light-dark(rgba(148,228,212,.5), rgba(28,86,92,.42)), transparent 62%),
+    linear-gradient(158deg, light-dark(#eef1fb, #171924), light-dark(#f6f1fb, #1d1b2e) 48%, light-dark(#e9f5f2, #152028));
 }
 
 :scope > .titlebar {
   padding-left: calc(var(--sidebar-width) + 28px);
-  background: linear-gradient(light-dark(rgba(255,255,255,.38), rgba(30,24,56,.44)), light-dark(rgba(255,255,255,.12), rgba(30,24,56,.2)));
+  background: linear-gradient(light-dark(rgba(255,255,255,.42), rgba(26,28,46,.5)), light-dark(rgba(255,255,255,.14), rgba(26,28,46,.22)));
   backdrop-filter: var(--dream-blur);
   color: var(--text);
 }
@@ -58,17 +62,17 @@
 .titlebar-actions button { border-radius: 10px; }
 .titlebar-actions button:hover {
   background: var(--accent-soft);
-  box-shadow: 0 0 0 4px light-dark(rgba(139,110,232,.08), rgba(183,154,255,.1));
+  box-shadow: 0 0 0 4px light-dark(rgba(106,90,232,.08), rgba(157,146,255,.1));
 }
 
 /* Explicit platform selector also overrides the default rounding in older Lumi builds. */
 :scope > .sidebar, :scope.platform-win32 > .sidebar {
-  border-radius: 20px;
+  border-radius: 22px;
   padding: 22px 14px;
   background: var(--dream-glass);
   backdrop-filter: var(--dream-blur);
   border: 1px solid var(--dream-glass-border);
-  box-shadow: var(--dream-shadow), inset 0 1px 0 var(--dream-glass-border);
+  box-shadow: var(--dream-shadow), inset 0 1px 0 var(--dream-spec), inset 0 -1px 0 light-dark(rgba(255,255,255,.3), rgba(255,255,255,.05));
 }
 .sidebar-navigation { padding: 6px 2px; }
 .sidebar-footer { border-top: 1px solid var(--border); padding: 12px 2px 0; }
@@ -84,11 +88,11 @@
 .nav-item { height: 42px; margin: 2px 0; border-radius: 14px; }
 .nav-item:hover { background: var(--accent-soft); }
 .nav-item.active, .nav-item.active:hover {
-  background: linear-gradient(120deg, #8055ce, #a064cc);
+  background: linear-gradient(135deg, light-dark(#7d6bef, #8d82f6), light-dark(#5f4ee0, #6f63ec));
   /* Default navigation text has an important declaration in existing hosts. */
   color: #fff !important;
   border-color: transparent;
-  box-shadow: 0 6px 18px rgba(139,110,232,.25);
+  box-shadow: 0 8px 20px -6px light-dark(rgba(106,90,232,.5), rgba(16,12,52,.6)), inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(20,10,60,.18);
 }
 .nav-item.active .nav-active-dot { background: #fff; }
 :scope .button.primary {
@@ -102,10 +106,10 @@
   position: relative;
   min-height: 0;
   overflow: hidden;
-  border-radius: 22px;
-  background: var(--dream-sheen) light-dark(rgba(255,255,255,.14), rgba(24,20,46,.2));
+  border-radius: 24px;
+  background: var(--dream-sheen) light-dark(rgba(255,255,255,.16), rgba(24,26,44,.24));
   border: 1px solid var(--dream-glass-border);
-  box-shadow: 0 18px 50px light-dark(rgba(124,92,224,.12), rgba(0,0,0,.35));
+  box-shadow: 0 20px 56px -12px light-dark(rgba(66,60,128,.2), rgba(0,0,0,.4)), inset 0 1px 0 var(--dream-spec);
 }
 .content-scroll {
   min-height: 0;
@@ -147,17 +151,17 @@
 /* The shell background is already soft; repeated surfaces only need tint and sheen. */
 :is(.surface, .panel, .stat-card, .tool-config-card, .model-card, .billing-tool, .billing-total, .token-overview-card, .site-row, .model-choice, .local-session-event, .backup-list > div, .welcome-features > div, .welcome-hero) {
   background-image: var(--dream-sheen);
-  box-shadow: inset 0 1px 0 var(--dream-glass-border);
+  box-shadow: inset 0 1px 0 var(--dream-spec);
 }
 /* Controls and inset surfaces share the translucent palette without extra blur layers. */
 :is(.button:not(.primary):not(.danger):not(.ghost), .global-search, .text-input, .select-wrap select, .multi-trigger, .favorite-filter, .context-setting input, .local-session-pagination input) {
   background-image: var(--dream-sheen);
-  box-shadow: inset 0 1px 0 var(--dream-glass-border);
+  box-shadow: inset 0 1px 0 var(--dream-spec);
 }
 /* Keep search focus more specific than its normal sheen and host popover surface. */
 .search-input, .multi-popover > .search-input {
   background-image: var(--dream-sheen);
-  box-shadow: inset 0 1px 0 var(--dream-glass-border);
+  box-shadow: inset 0 1px 0 var(--dream-spec);
 }
 :is(.current-config, .route-detail, .code-preview, .pricing-expression, .raw-detail pre, .info-note, .safety-panel, .token-help, .key-info-token, .token-key-value, .endpoint-display, .tool-runtime, .sidebar-tip, .sidebar-update, .calendar-summary, .release-notes-scroll, .refresh-animation-preview, .runtime-log-scroll, .runtime-log-columns, .local-session-first-prompt pre, .local-session-raw, .local-session-association, .warning-banner, .sync-warnings, .http-permission, .login-error, .auto-key-info, .preview-token, .login-trust, .global-search kbd, .search-input kbd, .model-card-bottom) {
   background-image: var(--dream-sheen);
@@ -173,7 +177,7 @@
 .local-session-records th { position: static; }
 .text-input:focus, .search-input:focus-within, .multi-popover > .search-input:focus-within, .select-wrap select:focus-visible {
   background-color: var(--panel-strong);
-  box-shadow: inset 0 1px 0 var(--dream-glass-border), 0 0 0 2px var(--accent-soft);
+  box-shadow: inset 0 1px 0 var(--dream-spec), 0 0 0 2px var(--accent-soft);
 }
 /* The rounded search container carries the keyboard focus indicator. */
 .search-input input:focus-visible { outline: none; }
@@ -181,8 +185,8 @@
   background-color: var(--hover);
 }
 :scope .button.primary {
-  background-image: linear-gradient(135deg, light-dark(rgba(255,255,255,.16), rgba(255,255,255,.1)), transparent);
-  box-shadow: 0 4px 12px light-dark(rgba(128,85,206,.22), rgba(0,0,0,.2)), inset 0 1px 0 rgba(255,255,255,.2);
+  background-image: linear-gradient(135deg, light-dark(rgba(255,255,255,.22), rgba(255,255,255,.12)), transparent 55%);
+  box-shadow: 0 6px 16px -4px light-dark(rgba(106,90,232,.4), rgba(0,0,0,.3)), inset 0 1px 0 rgba(255,255,255,.32), inset 0 -1px 0 rgba(20,10,60,.14);
 }
 input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--accent); }
 :is(.data-table, .runtime-log-table) tbody tr:nth-child(even) { background-color: var(--panel-soft); }
@@ -225,7 +229,7 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
   background-image: var(--dream-sheen);
   backdrop-filter: var(--dream-popup-blur);
   border-color: var(--dream-glass-border);
-  box-shadow: var(--dream-shadow), inset 0 1px 0 var(--dream-glass-border);
+  box-shadow: var(--dream-shadow), inset 0 1px 0 var(--dream-spec);
 }
 .modal, .modal.surface { backdrop-filter: none; }
 /* A blurred ancestor captures fixed dialogs; restore viewport positioning while open. */
@@ -301,7 +305,7 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
     background-image: var(--dream-sheen);
     backdrop-filter: var(--dream-popup-blur);
     border-color: var(--dream-glass-border);
-    box-shadow: var(--dream-shadow), inset 0 1px 0 var(--dream-glass-border);
+    box-shadow: var(--dream-shadow), inset 0 1px 0 var(--dream-spec);
   }
   :scope .select-wrap select option {
     box-sizing: border-box;
@@ -340,8 +344,8 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 }
 .content-scroll::-webkit-scrollbar { width: 10px; }
 .content-scroll::-webkit-scrollbar-track { background: transparent; }
-.content-scroll::-webkit-scrollbar-thumb { background: light-dark(rgba(139,110,232,.3), rgba(183,154,255,.3)); border-radius: 8px; }
-.content-scroll::-webkit-scrollbar-thumb:hover { background: light-dark(rgba(139,110,232,.45), rgba(183,154,255,.45)); }
+.content-scroll::-webkit-scrollbar-thumb { background: light-dark(rgba(100,100,150,.3), rgba(178,180,220,.3)); border-radius: 8px; }
+.content-scroll::-webkit-scrollbar-thumb:hover { background: light-dark(rgba(100,100,150,.45), rgba(178,180,220,.45)); }
 
 @media (max-width: 1100px) {
   :scope { --sidebar-width: 188px; --shell-inset: 10px; }

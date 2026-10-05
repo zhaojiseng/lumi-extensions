@@ -4,8 +4,8 @@
   "kind": "interface",
   "id": "extension.author.dreamy",
   "name": "浮梦 · 梦幻界面",
-  "version": "1.0.6",
-  "description": "梦幻风界面：柔彩渐变背景、磨砂玻璃侧栏、粉紫强调色与柔光阴影，浅色与深色模式均有梦幻质感。",
+  "version": "1.1.0",
+  "description": "液态玻璃风界面：柔彩极光背景、通透玻璃侧栏、镜面高光边缘与柔光投影，浅色与深色模式均有流动质感。",
   "author": "Author",
   "license": "MIT",
   "interface": {
