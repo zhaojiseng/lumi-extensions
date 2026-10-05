@@ -153,9 +153,18 @@
   background-image: var(--dream-sheen);
   box-shadow: inset 0 1px 0 var(--dream-glass-border);
 }
-:is(.current-config, .route-detail, .code-preview, .pricing-expression, .raw-detail pre, .info-note, .safety-panel, .token-help, .key-info-token, .token-key-value, .endpoint-display, .tool-runtime, .sidebar-tip, .sidebar-update, .calendar-summary, .release-notes-scroll, .refresh-animation-preview, .runtime-log-scroll, .runtime-log-columns, .local-session-first-prompt pre, .local-session-raw, .local-session-association, .warning-banner, .sync-warnings, .http-permission, .login-error, .auto-key-info, .preview-token, .login-trust, .global-search kbd, .search-input kbd, .data-table th, .local-session-records th, .model-card-bottom) {
+:is(.current-config, .route-detail, .code-preview, .pricing-expression, .raw-detail pre, .info-note, .safety-panel, .token-help, .key-info-token, .token-key-value, .endpoint-display, .tool-runtime, .sidebar-tip, .sidebar-update, .calendar-summary, .release-notes-scroll, .refresh-animation-preview, .runtime-log-scroll, .runtime-log-columns, .local-session-first-prompt pre, .local-session-raw, .local-session-association, .warning-banner, .sync-warnings, .http-permission, .login-error, .auto-key-info, .preview-token, .login-trust, .global-search kbd, .search-input kbd, .model-card-bottom) {
   background-image: var(--dream-sheen);
 }
+/* Paint the header once so unequal column widths do not restart the sheen. */
+.data-table thead {
+  background: var(--panel-soft) var(--dream-sheen);
+  clip-path: inset(0 round 7px);
+}
+.data-table th { background: transparent; }
+/* Keep the whole header together when local records scroll underneath it. */
+.local-session-records thead { position: sticky; top: 0; z-index: 1; background-color: var(--canvas); }
+.local-session-records th { position: static; }
 .text-input:focus, .search-input:focus-within, .select-wrap select:focus-visible {
   background-color: var(--panel-strong);
   box-shadow: inset 0 1px 0 var(--dream-glass-border), 0 0 0 2px var(--accent-soft);
