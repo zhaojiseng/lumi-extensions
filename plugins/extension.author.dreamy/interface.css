@@ -35,6 +35,7 @@
   --surface-shadow: var(--dream-shadow);
   --dream-blur: blur(12px);
   --dream-popup-blur: blur(12px);
+  --dream-dialog-blur: blur(12px);
   --dream-edge: light-dark(rgba(255,255,255,.12), rgba(24,20,46,.16));
   --dream-sheen: linear-gradient(135deg, light-dark(rgba(255,255,255,.24), rgba(222,200,255,.07)), transparent 42%, light-dark(rgba(91,208,214,.09), rgba(91,208,214,.06)));
   --dream-overlay: light-dark(rgba(47,32,77,.12), rgba(8,5,20,.24));
@@ -149,7 +150,12 @@
   box-shadow: inset 0 1px 0 var(--dream-glass-border);
 }
 /* Controls and inset surfaces share the translucent palette without extra blur layers. */
-:is(.button:not(.primary):not(.danger):not(.ghost), .global-search, .text-input, .search-input, .select-wrap select, .multi-trigger, .favorite-filter, .context-setting input, .local-session-pagination input) {
+:is(.button:not(.primary):not(.danger):not(.ghost), .global-search, .text-input, .select-wrap select, .multi-trigger, .favorite-filter, .context-setting input, .local-session-pagination input) {
+  background-image: var(--dream-sheen);
+  box-shadow: inset 0 1px 0 var(--dream-glass-border);
+}
+/* Keep search focus more specific than its normal sheen and host popover surface. */
+.search-input, .multi-popover > .search-input {
   background-image: var(--dream-sheen);
   box-shadow: inset 0 1px 0 var(--dream-glass-border);
 }
@@ -165,10 +171,12 @@
 /* Keep the whole header together when local records scroll underneath it. */
 .local-session-records thead { position: sticky; top: 0; z-index: 1; background-color: var(--canvas); }
 .local-session-records th { position: static; }
-.text-input:focus, .search-input:focus-within, .select-wrap select:focus-visible {
+.text-input:focus, .search-input:focus-within, .multi-popover > .search-input:focus-within, .select-wrap select:focus-visible {
   background-color: var(--panel-strong);
   box-shadow: inset 0 1px 0 var(--dream-glass-border), 0 0 0 2px var(--accent-soft);
 }
+/* The rounded search container carries the keyboard focus indicator. */
+.search-input input:focus-visible { outline: none; }
 :is(.button, .global-search, .favorite-filter):hover:not(:disabled):not(.primary):not(.danger) {
   background-color: var(--hover);
 }
@@ -182,7 +190,19 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 :is(.data-table, .runtime-log-table) tbody tr.error { background-color: var(--red-soft); }
 :is(.data-table, .runtime-log-table) tbody tr.warn { background-color: var(--orange-soft); }
 .modal-overlay {
+  background: transparent;
+  isolation: isolate;
+}
+/* Only the backdrop is filtered. Keeping it on a separate layer also avoids
+   making the overlay a containing block for nested fixed dialogs. */
+.modal-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background: var(--dream-overlay);
+  backdrop-filter: var(--dream-dialog-blur);
 }
 :is(.modal, .modal.surface, .multi-popover, .toast, .recharts-default-tooltip, .donut-tooltip) {
   background-color: var(--panel-strong);
@@ -191,6 +211,7 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
   border-color: var(--dream-glass-border);
   box-shadow: var(--dream-shadow), inset 0 1px 0 var(--dream-glass-border);
 }
+.modal, .modal.surface { backdrop-filter: none; }
 /* A blurred ancestor captures fixed dialogs; restore viewport positioning while open. */
 :scope :has(.modal-overlay) {
   backdrop-filter: none !important;

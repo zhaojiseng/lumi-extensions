@@ -10,6 +10,7 @@
   "scripts": {
     "setup:host": "node scripts/setup-host.mjs",
     "check": "node scripts/check.mjs",
+    "check:dreamy-ui": "node scripts/check-dreamy-ui.mjs",
     "package": "node scripts/package.mjs"
   }
 }
