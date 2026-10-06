@@ -68,6 +68,12 @@ Lumi **只作显示桥接**：主程序不解释 Codex 协议、不覆盖沙箱�
 npm run check -- plugins/extension.lumi.codex
 ```
 
+## 2.0.0 验证记录
+
+2026-10-06，Windows x64，匹配宿主 Lumi 0.5.16（`e6fbbc29a84ce4c3e922c98b1771bfddcbf1d693`）。`npm run check` 全部目录包通过；`node scripts/check-codex-ui.mjs <宿主checkout>` 的真实 Electron 沙箱回归通过，覆盖流式消息、跨线程事件撤回、不自动审批、审批失败重试、补充问题、模型强度、目录选择、重命名、删除确认、连接关闭与重连、浅深主题和宽窄布局。截图保存在 `.cache/codex-ui/`。
+
+审批响应按 Codex 官方 app-server JSON schema 核对，命令与文件审批使用 `{decision}`；回归仅使用假进程和消息，不发送真实账户或付费请求。运行包只包含本插件资源和 MIT 许可，不包含 SDK 运行时或宿主源码。
+
 ## 许可
 
 MIT，见 [LICENSE](LICENSE)。不打包 `lumi-sdk.js`（由宿主提供）。

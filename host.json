@@ -1,6 +1,6 @@
 {
-  "repository": "https://github.com/zhaojiseng/lumi.git",
-  "ref": "e7d1791d0f159af01b9bf7ed3977a72f539a86ee",
-  "release": "v0.5.13",
-  "hostApiVersion": 1
+    "repository":  "https://github.com/zhaojiseng/lumi.git",
+    "ref":  "e6fbbc29a84ce4c3e922c98b1771bfddcbf1d693",
+    "release":  "v0.5.16",
+    "hostApiVersion":  1
 }
