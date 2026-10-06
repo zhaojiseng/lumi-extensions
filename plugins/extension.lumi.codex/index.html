@@ -6,50 +6,55 @@
   <link rel="stylesheet" href="lumi-ui.css" data-lumi-ui>
   <link rel="stylesheet" href="style.css">
   <script src="lumi-sdk.js" defer></script>
+  <script src="display.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body data-lumi-ui>
   <section id="view-chat" hidden>
-    <div class="chat-shell">
-      <aside class="threads surface panel">
-        <div class="threads-head">
-          <button id="new-thread" type="button" class="button primary">新建会话</button>
-          <button id="refresh-threads" type="button" class="button ghost" title="刷新会话列表">刷新</button>
-          <button id="reconnect" type="button" class="button ghost">重连</button>
-        </div>
-        <input class="text-input" id="thread-search" type="search" placeholder="搜索会话" autocomplete="off">
-        <ul id="thread-list" class="thread-list"></ul>
+    <div id="chat-shell" class="chat-shell">
+      <button id="sidebar-backdrop" class="sidebar-backdrop" aria-label="关闭会话列表" type="button" tabindex="-1"></button>
+      <aside id="threads-panel" class="threads surface panel" aria-label="项目与会话">
+        <div class="threads-head"><button id="new-thread" type="button" class="button ghost new-chat">＋ 新聊天</button><button id="close-threads" type="button" class="button ghost" aria-label="关闭会话列表">×</button></div>
+        <input class="text-input" id="thread-search" type="search" placeholder="搜索会话或项目" aria-label="搜索会话或项目" title="搜索会话标题或已载入的项目目录" autocomplete="off">
+        <label class="select-wrap source-filter" data-decorated="false"><select id="source-filter" aria-label="会话来源类型"><option value="">全部类型</option><option value="cli">终端</option><option value="vscode">编辑器</option><option value="appServer">应用</option><option value="exec">自动任务</option><option value="subAgent">子任务</option></select></label>
+        <ul id="thread-list" class="thread-list"></ul><p id="threads-error" class="error-text small" role="status"></p><button id="load-threads" type="button" class="button ghost" hidden>更多会话</button>
+        <div class="threads-footer"><button id="refresh-threads" type="button" class="button ghost">刷新</button><button id="reconnect" type="button" class="button ghost">重连</button></div>
       </aside>
-      <div class="conversation surface panel">
+      <main class="conversation" aria-label="Codex 对话">
         <header class="conversation-head">
-          <div class="title">
-            <strong id="thread-title">新会话</strong>
-            <span id="thread-meta" class="muted small"></span>
-          </div>
-          <div class="controls">
-            <label class="select-wrap" data-decorated="false"><select id="model-select" aria-label="模型"></select></label>
-            <label class="select-wrap" data-decorated="false"><select id="effort-select" aria-label="推理强度"></select></label>
-            <button id="pick-cwd" type="button" class="button ghost" title="选择工作目录">目录</button>
-            <button id="rename-thread" type="button" class="button ghost" title="重命名">重命名</button>
-            <button id="archive-thread" type="button" class="button ghost" title="归档/取消归档">归档</button>
-            <button id="delete-thread" type="button" class="button ghost danger" title="删除会话">删除</button>
-          </div>
+          <button id="toggle-threads" type="button" class="button ghost" aria-label="展开项目与会话" aria-controls="threads-panel" aria-expanded="false">☰</button>
+          <div class="title"><strong id="thread-title">新会话</strong><span id="thread-meta" class="muted small"></span></div>
+          <details class="thread-actions"><summary class="button ghost" aria-label="会话操作">⋯</summary><div class="actions-menu surface" data-popup-kind="popover" role="group" aria-label="会话操作"><button id="rename-thread" type="button" class="button ghost">重命名</button><button id="archive-thread" type="button" class="button ghost">归档</button><button id="delete-thread" type="button" class="button danger">删除会话</button><p id="thread-actions-note" class="muted small" hidden></p></div></details>
         </header>
         <div id="rename-form" class="inline-form" hidden><label>会话名称 <input class="text-input" id="rename-input" maxlength="200" required></label><button id="save-rename" type="button" class="button primary">保存名称</button><button id="cancel-rename" type="button" class="button ghost">取消</button></div>
         <div id="delete-confirm" class="inline-form" hidden><span>删除该会话？此操作不可撤销。</span><button id="confirm-delete" type="button" class="button danger">确认删除</button><button id="cancel-delete" type="button" class="button ghost">取消</button></div>
-        <div id="cwd-line" class="muted small"></div>
-        <div id="conversation" class="stream" aria-live="polite"></div>
-        <div id="approvals" class="approvals"></div>
-        <div id="composer" class="composer">
-          <textarea class="text-input" id="prompt" rows="3" placeholder="给 Codex 派个任务…（Enter 发送，Shift+Enter 换行）"></textarea>
-          <div class="composer-actions">
-            <span id="status" class="muted small" role="status"></span>
-            <button id="steer" type="button" class="button ghost" disabled>追加指示</button>
-            <button id="interrupt" type="button" class="button ghost" disabled>中断</button>
-            <button id="send" type="button" disabled class="button primary">发送</button>
+        <div class="stream-stage" id="stream-stage">
+        <div class="turn-navigation" aria-label="用户对话定位">
+          <button id="load-turn-index" class="turn-index-load" type="button" aria-label="载入更早的用户对话" title="按页载入更早的用户对话">⋯</button>
+          <nav id="turn-rail" class="turn-rail" aria-label="已载入的用户对话定位"></nav>
+        </div>
+          <div id="turn-preview" class="turn-preview recharts-default-tooltip" data-lumi-glass="lens" role="tooltip"><div class="turn-preview-content"><span class="muted small">用户消息</span><p id="turn-preview-text"></p></div></div>
+        <div id="conversation" class="stream" role="log" aria-label="消息记录" aria-live="polite">
+          <button id="load-older" class="button ghost history-control" type="button" hidden>载入更早消息</button><p id="history-note" class="muted small" role="status"></p>
+          <div id="empty-conversation" class="empty-conversation"><strong>今天想完成什么？</strong><p class="muted">选择一个项目或打开已有会话，继续与 Codex 协作。</p></div>
+          <div id="messages" class="messages"></div><button id="load-newer" class="button ghost history-control" type="button" hidden>继续向后阅读</button>
+        </div>
+        </div>
+        <button id="jump-latest" class="button jump-latest" type="button" hidden>↓ 最新消息</button>
+        <div class="composer-area">
+          <div id="approvals" class="approvals" aria-label="待确认事项"></div>
+          <div id="composer" class="composer surface panel">
+            <textarea class="text-input" id="prompt" rows="2" aria-label="给 Codex 派个任务" placeholder="给 Codex 派个任务…"></textarea>
+            <div class="composer-actions">
+              <button id="pick-cwd" type="button" class="button ghost directory-button" title="选择工作目录"><span>＋</span><span id="cwd-line">工作目录</span></button>
+              <div class="model-controls"><label class="select-wrap" data-decorated="false"><select id="model-select" aria-label="模型"></select></label><label class="select-wrap effort-control" data-decorated="false"><select id="effort-select" aria-label="推理强度"></select></label></div>
+              <button id="steer" type="button" class="button ghost" disabled>追加指示</button><button id="interrupt" type="button" class="button ghost" disabled>中断</button><button id="send" type="button" disabled class="button primary send-button" aria-label="发送">↑</button>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
+      <aside id="context-panel" class="context-panel surface panel" aria-label="会话详情"><h3>当前项目</h3><p id="context-project" class="path-label muted small">尚未选择</p><h3>文件改动</h3><div id="context-files" class="context-files muted small">当前没有文件改动</div><h3>来源与工具</h3><div id="context-tools" class="context-tools muted small">当前没有工具记录</div></aside>
+      <div id="status" class="muted small composer-status" role="status" aria-live="polite"></div>
     </div>
   </section>
 

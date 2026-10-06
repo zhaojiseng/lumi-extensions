@@ -4,7 +4,7 @@
   "kind": "interface",
   "id": "extension.author.dreamy",
   "name": "浮梦 · 梦幻界面",
-  "version": "1.1.5",
+  "version": "1.1.8",
   "description": "液态玻璃风界面：柔彩背景、方向性玻璃亮弧与柔光投影，搭配清晰稳定的数据面板，支持浅色、深色与减少动态效果。",
   "author": "Author",
   "license": "MIT",
@@ -12,7 +12,7 @@
     "stylesheet": "interface.css",
     "appearanceGroups": [
       {"id":"transparency","title":"玻璃透明度","defaultOption":"balanced","options":[{"id":"clear","title":"通透"},{"id":"balanced","title":"均衡"},{"id":"solid","title":"不透明"}]},
-      {"id":"blur","title":"背景模糊度","defaultOption":"standard","options":[{"id":"off","title":"关闭"},{"id":"soft","title":"轻柔"},{"id":"standard","title":"标准"},{"id":"strong","title":"强烈"}]},
+      {"id":"blur","title":"背景模糊度","defaultOption":"standard","options":[{"id":"off","title":"关闭"},{"id":"soft","title":"轻柔"},{"id":"moderate","title":"适中"},{"id":"standard","title":"标准"},{"id":"strong","title":"强烈"}]},
       {"id":"distortion","title":"玻璃扭曲程度","defaultOption":"mild","options":[{"id":"off","title":"关闭"},{"id":"mild","title":"轻微"},{"id":"standard","title":"标准"},{"id":"strong","title":"明显"}]}
     ]
   }
