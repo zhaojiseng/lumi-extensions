@@ -43,6 +43,9 @@
   /* The host interpolates to the selected radius on the separate backdrop.
      Keep the default at 12px and preserve its opening/closing lifecycle. */
   --dream-dialog-blur: blur(12px);
+  --dream-control-blur: blur(3px) saturate(1.15);
+  --dream-selected-border: light-dark(rgba(106,90,232,.42), rgba(190,183,255,.48));
+  --dream-control-shadow: inset 0 1px 0 var(--dream-spec), inset 0 -1px 0 var(--dream-glass-border);
   --dream-edge: light-dark(rgba(255,255,255,.14), rgba(26,28,46,.18));
   --dream-sheen: linear-gradient(135deg, light-dark(rgba(255,255,255,.22), rgba(219,237,255,.055)), transparent 32%, transparent 76%, light-dark(rgba(198,223,249,.12), rgba(134,191,225,.045)));
   --dream-rim: conic-gradient(from 135deg, light-dark(rgba(255,255,255,.9), rgba(216,241,255,.44)), var(--dream-glass-border) 12%, var(--dream-glass-border) 36%, light-dark(rgba(255,255,255,.94), rgba(216,241,255,.48)) 50%, var(--dream-glass-border) 64%, var(--dream-glass-border) 88%, light-dark(rgba(255,255,255,.9), rgba(216,241,255,.44)));
@@ -59,18 +62,22 @@
 
 /* Host appearance groups persist separately, so opacity and blur are independent. */
 :scope[data-appearance-transparency="clear"] {
+  --panel: light-dark(rgba(255,255,255,.58), rgba(26,30,46,.7));
+  --panel-soft: light-dark(rgba(239,243,252,.5), rgba(43,48,68,.54));
   --dream-glass: light-dark(rgba(255,255,255,.28), rgba(22,28,44,.38));
   --dream-floating-glass: light-dark(rgba(250,253,255,.46), rgba(24,31,48,.52));
   --dream-selected-glass: light-dark(rgba(224,225,255,.22), rgba(97,88,161,.2));
 }
 :scope[data-appearance-transparency="solid"] {
+  --panel: light-dark(#f5f8ff, #1c2335);
+  --panel-soft: light-dark(#eff3fc, #2b3044);
   --dream-glass: light-dark(#f5f8ff, #1c2335);
   --dream-floating-glass: light-dark(#fafdff, #181f30);
   --dream-selected-glass: light-dark(#e0e1ff, #393650);
 }
-:scope[data-appearance-blur="off"] { --dream-blur: blur(0px) saturate(1); --dream-popup-blur: blur(0px) saturate(1); --dream-dialog-blur: blur(0px); }
-:scope[data-appearance-blur="soft"] { --dream-blur: blur(3px) saturate(1.1); --dream-popup-blur: blur(2px) saturate(1.1); --dream-dialog-blur: blur(2px); }
-:scope[data-appearance-blur="strong"] { --dream-blur: blur(26px) saturate(1.3); --dream-popup-blur: blur(18px) saturate(1.25); --dream-dialog-blur: blur(18px); }
+:scope[data-appearance-blur="off"] { --dream-blur: blur(0px) saturate(1); --dream-popup-blur: blur(0px) saturate(1); --dream-dialog-blur: blur(0px); --dream-control-blur: blur(0px) saturate(1); }
+:scope[data-appearance-blur="soft"] { --dream-blur: blur(3px) saturate(1.1); --dream-popup-blur: blur(2px) saturate(1.1); --dream-dialog-blur: blur(2px); --dream-control-blur: blur(1px) saturate(1.1); }
+:scope[data-appearance-blur="strong"] { --dream-blur: blur(26px) saturate(1.3); --dream-popup-blur: blur(18px) saturate(1.25); --dream-dialog-blur: blur(18px); --dream-control-blur: blur(5px) saturate(1.2); }
 :scope[data-appearance-distortion="off"] { --lumi-glass-distortion: 0; }
 :scope[data-appearance-distortion="standard"] { --lumi-glass-distortion: 6; }
 :scope[data-appearance-distortion="strong"] { --lumi-glass-distortion: 10; }
@@ -173,11 +180,16 @@
 }
 
 /* The shell background is already soft; repeated surfaces only need tint and sheen. */
-:is(.surface, .panel, .stat-card, .tool-config-card, .model-card, .billing-tool, .billing-total, .token-overview-card, .site-row, .model-choice, .local-session-event, .backup-list > div, .welcome-features > div, .welcome-hero) {
+:is(.surface, .panel, .stat-card, .tool-config-card, .model-card, .billing-tool, .billing-total, .token-overview-card, .site-row, .model-choice, .local-session-event, .backup-list > div, .welcome-features > div, .welcome-hero, .plugin-settings-group, .market-item, .plugin-details-section) {
   background-image: var(--dream-sheen);
   background-color: var(--panel);
-  box-shadow: var(--dream-surface-shadow);
+  border-color: var(--dream-glass-border);
+  box-shadow: var(--dream-surface-shadow), inset 0 -1px 0 var(--dream-glass-border);
 }
+/* Primary containers use a shallow local backdrop. Text is never filtered;
+   inset rows reuse the material without another compositor layer. */
+:scope :is(.surface.panel, .stat-card, .tool-config-card, .model-card, .token-overview-card, .model-toolbar, .statistics-filter, .welcome-hero) { backdrop-filter: var(--dream-control-blur); }
+:scope[data-appearance-transparency="solid"] :is(.surface.panel, .stat-card, .tool-config-card, .model-card, .token-overview-card, .model-toolbar, .statistics-filter, .welcome-hero) { backdrop-filter: none; }
 /* Controls and inset surfaces share the translucent palette without extra blur layers. */
 :is(.button:not(.primary):not(.danger):not(.ghost), .global-search, .text-input, .select-wrap select, .multi-trigger, .favorite-filter, .context-setting input, .local-session-pagination input) {
   background-image: var(--dream-sheen);
@@ -227,7 +239,7 @@
 }
 .button:disabled { box-shadow: none; }
 /* Marketplace selection keeps the host's measured sliding thumb and drag lifecycle. */
-:scope .models-market .model-mode-selector {
+:scope :is(.model-mode-selector, .segmented, .market-kinds) {
   background: var(--dream-sheen) var(--dream-glass);
   border-color: var(--dream-glass-border);
   box-shadow: inset 0 1px 0 var(--dream-spec), inset 0 -1px 0 var(--line);
@@ -237,20 +249,60 @@
      Pointer events remain disabled; measured stops and hit targets stay host-owned. */
   z-index: 2;
   background: var(--dream-sheen) var(--dream-selected-glass);
-  border-color: light-dark(rgba(106,90,232,.42), rgba(190,183,255,.48));
+  border-color: var(--dream-selected-border);
   backdrop-filter: var(--lumi-glass-filter, blur(0px));
-  box-shadow: inset 0 1px 0 var(--dream-spec), inset 0 -1px 0 var(--dream-glass-border);
+  box-shadow: var(--dream-control-shadow);
 }
 :scope[data-appearance-transparency="solid"] .model-mode-selector .segmented-thumb {
   z-index: 0;
   backdrop-filter: none;
 }
-:scope .models-market :is(.vendor-tabs > button.active, .favorite-filter.active) {
+/* Choice surfaces share one material. Keep text above the backdrop and leave
+   geometry, checked state, pointer handling and measured sliding thumbs to Lumi. */
+:scope :is(.segmented > button, .vendor-tabs > button, .favorite-filter, .page-tabs > button, .metric-tabs > button, .settings-subnav > button, .preview-file-tabs > button, .local-session-tabs > button, .market-kinds > button, .model-choice, .theme-options > button) {
+  position: relative;
+  background: var(--dream-sheen) var(--dream-glass);
+  border-color: var(--dream-glass-border);
+  color: var(--text-secondary);
+  box-shadow: inset 0 1px 0 var(--dream-spec);
+  cursor: default;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+:scope :is(.segmented > button, .market-kinds > button) { background: transparent; box-shadow: none; }
+:scope :is(.segmented > button, .vendor-tabs > button, .favorite-filter, .page-tabs > button, .metric-tabs > button, .settings-subnav > button, .preview-file-tabs > button, .local-session-tabs > button, .market-kinds > button, .model-choice, .theme-options > button):hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--dream-sheen) var(--hover);
+  border-color: var(--dream-selected-border);
+  box-shadow: inset 0 1px 0 var(--dream-spec);
+}
+:scope :is(.segmented > button.active, .vendor-tabs > button.active, .favorite-filter.active, .page-tabs > button.active, .metric-tabs > button.active, .settings-subnav > button.active, .preview-file-tabs > button.active, .local-session-tabs > button[aria-pressed="true"], .market-kinds > button[aria-pressed="true"], .model-choice.selected, .theme-options > button.active) {
   background: var(--dream-sheen) var(--dream-selected-glass);
   color: var(--accent);
-  border-color: var(--accent);
-  backdrop-filter: var(--dream-popup-blur) var(--lumi-glass-filter, blur(0px));
-  box-shadow: var(--dream-surface-shadow);
+  border-color: var(--dream-selected-border);
+  box-shadow: var(--dream-control-shadow);
+}
+/* Apply local blur to compact selected controls, never iframe preview parents. */
+:scope :is(.segmented > button.active, .vendor-tabs > button.active, .favorite-filter.active, .page-tabs > button.active, .metric-tabs > button.active, .settings-subnav > button.active, .preview-file-tabs > button.active, .local-session-tabs > button[aria-pressed="true"], .market-kinds > button[aria-pressed="true"], .model-choice.selected) {
+  backdrop-filter: var(--dream-control-blur) var(--lumi-glass-filter, blur(0px));
+}
+:scope :is(.segmented > button, .vendor-tabs > button, .favorite-filter, .page-tabs > button, .metric-tabs > button, .settings-subnav > button, .preview-file-tabs > button, .local-session-tabs > button, .market-kinds > button, .model-choice, .theme-options > button):focus-visible,
+:scope .switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+/* Switches keep the host's thumb travel and a visible on/off color distinction. */
+:scope .switch { background: var(--dream-sheen) var(--panel-soft); box-shadow: inset 0 0 0 1px var(--border), inset 0 1px 0 var(--dream-spec); cursor: default; }
+:scope .switch.on { background: var(--dream-sheen) var(--accent); box-shadow: inset 0 0 0 1px var(--dream-selected-border), inset 0 1px 0 var(--dream-spec); }
+:scope .switch > span { background: var(--dream-sheen) light-dark(#fff, #f3f4fb); box-shadow: 0 1px 3px #0003, inset 0 1px 0 #fff8; }
+@media (prefers-reduced-motion: reduce) {
+  :scope :is(.segmented > button, .vendor-tabs > button, .favorite-filter, .page-tabs > button, .metric-tabs > button, .settings-subnav > button, .preview-file-tabs > button, .local-session-tabs > button, .market-kinds > button, .model-choice, .theme-options > button) { transition: none; }
+}
+:scope[data-appearance-transparency="solid"] :is(.segmented > button.active, .vendor-tabs > button.active, .favorite-filter.active, .page-tabs > button.active, .metric-tabs > button.active, .settings-subnav > button.active, .preview-file-tabs > button.active, .local-session-tabs > button[aria-pressed="true"], .market-kinds > button[aria-pressed="true"], .model-choice.selected) { backdrop-filter: none; }
+@media (prefers-reduced-transparency: reduce) {
+  :scope, :scope[data-appearance-blur] { --dream-control-blur: none; }
+}
+@media (forced-colors: active) {
+  :scope :is(.segmented > button, .vendor-tabs > button, .favorite-filter, .page-tabs > button, .metric-tabs > button, .settings-subnav > button, .preview-file-tabs > button, .local-session-tabs > button, .market-kinds > button, .model-choice, .theme-options > button, .switch) { background: Canvas; color: CanvasText; border-color: ButtonText; box-shadow: none; backdrop-filter: none; }
+  :scope :is(.segmented > button.active, .vendor-tabs > button.active, .favorite-filter.active, .page-tabs > button.active, .metric-tabs > button.active, .settings-subnav > button.active, .preview-file-tabs > button.active, .local-session-tabs > button[aria-pressed="true"], .market-kinds > button[aria-pressed="true"], .model-choice.selected, .theme-options > button.active, .switch.on) { background: Highlight; color: HighlightText; }
 }
 input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--accent); }
 :is(.data-table, .runtime-log-table) tbody tr:nth-child(even) { background-color: var(--panel-soft); }
@@ -330,7 +382,8 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 }
 /* Mask the light to a one-pixel rim; never paint it underneath the glass center. */
 :scope > .sidebar::after, .modal::after, .toast::after, [data-popup-kind="popover"]::after, .segmented-thumb::after,
-.recharts-default-tooltip::after, .donut-tooltip::after, .multi-popover::after {
+.recharts-default-tooltip::after, .donut-tooltip::after, .multi-popover::after,
+:scope :is(.segmented > button.active, .vendor-tabs > button.active, .favorite-filter.active, .page-tabs > button.active, .metric-tabs > button.active, .settings-subnav > button.active, .preview-file-tabs > button.active, .local-session-tabs > button[aria-pressed="true"], .market-kinds > button[aria-pressed="true"], .model-choice.selected, .theme-options > button.active)::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -453,7 +506,8 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 }
 @supports not (backdrop-filter: blur(1px)) {
   :scope .model-mode-selector .segmented-thumb { z-index: 0; }
-  :scope {
+  :scope, :scope[data-appearance-transparency], :scope[data-appearance-blur] {
+    --dream-control-blur: none;
     --panel: light-dark(rgba(255,255,255,.96), rgba(35,28,62,.96));
     --panel-strong: var(--panel);
     --panel-soft: light-dark(#efe8fa, #30264b);
@@ -467,7 +521,8 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 }
 @media (prefers-reduced-transparency: reduce) {
   :scope .model-mode-selector .segmented-thumb { z-index: 0; backdrop-filter: none; }
-  :scope {
+  :scope, :scope[data-appearance-transparency], :scope[data-appearance-blur] {
+    --dream-control-blur: none;
     --panel: light-dark(#fff, #1a1e2e);
     --panel-strong: light-dark(#fff, #1e2234);
     --panel-soft: light-dark(#eff3fc, #2b3044);
@@ -482,7 +537,9 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 }
 @media (forced-colors: active) {
   :scope .model-mode-selector .segmented-thumb { z-index: 0; backdrop-filter: none; }
-  :scope { --accent: Highlight; --text: CanvasText; --panel: Canvas; --panel-strong: Canvas; --input: Canvas; }
+  :scope, :scope[data-appearance-transparency], :scope[data-appearance-blur] { --accent: Highlight; --text: CanvasText; --panel: Canvas; --panel-strong: Canvas; --panel-soft: Canvas; --input: Canvas; --dream-control-blur: none; }
+  :scope :is(.surface.panel, .stat-card, .tool-config-card, .model-card, .token-overview-card, .model-toolbar, .statistics-filter, .plugin-settings-group, .market-item, .plugin-details-section) { background: Canvas; color: CanvasText; border-color: CanvasText; box-shadow: none; }
+  :scope :is(.segmented > button.active, .vendor-tabs > button.active, .favorite-filter.active, .page-tabs > button.active, .metric-tabs > button.active, .settings-subnav > button.active, .preview-file-tabs > button.active, .local-session-tabs > button[aria-pressed="true"], .market-kinds > button[aria-pressed="true"], .model-choice.selected, .theme-options > button.active)::after { display: none; }
   :scope > .sidebar, :scope > .main-area, .modal, .modal.surface {
     background: Canvas;
     border: 1px solid CanvasText;
