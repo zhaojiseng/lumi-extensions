@@ -239,7 +239,7 @@
   background: var(--dream-sheen) var(--dream-selected-glass);
   border-color: light-dark(rgba(106,90,232,.42), rgba(190,183,255,.48));
   backdrop-filter: var(--lumi-glass-filter, blur(0px));
-  box-shadow: 0 3px 9px -4px light-dark(rgba(74,61,151,.28), rgba(0,0,0,.5)), inset 0 1px 0 var(--dream-spec), inset 0 -1px 0 var(--dream-glass-border);
+  box-shadow: inset 0 1px 0 var(--dream-spec), inset 0 -1px 0 var(--dream-glass-border);
 }
 :scope[data-appearance-transparency="solid"] .model-mode-selector .segmented-thumb {
   z-index: 0;
@@ -321,6 +321,12 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
   border-radius: 20px;
   background: var(--dream-sheen) var(--dream-floating-glass);
   border: 1px solid var(--dream-glass-border);
+}
+/* Iframe previews create compositor layers. Keep market content explicitly
+   above the backdrop so earlier cards and headings cannot be sampled by it. */
+.modal.extension-market > * {
+  position: relative;
+  z-index: 1;
 }
 /* Mask the light to a one-pixel rim; never paint it underneath the glass center. */
 :scope > .sidebar::after, .modal::after, .toast::after, [data-popup-kind="popover"]::after, .segmented-thumb::after,

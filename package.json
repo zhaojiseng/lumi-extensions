@@ -11,6 +11,7 @@
     "setup:host": "node scripts/setup-host.mjs",
     "check": "node scripts/check.mjs",
     "check:dreamy-ui": "node scripts/check-dreamy-ui.mjs",
+    "check:dreamy-market-ui": "node scripts/check-dreamy-market-ui.mjs",
     "package": "node scripts/package.mjs"
   }
 }

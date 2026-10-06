@@ -89,6 +89,12 @@ Lumi 的独立界面插件，以液态玻璃风格呈现：柔彩背景、通透
 
 ## 验证
 
+提交前在 Lumi 0.5.15 checkout 复验：官方包校验、完整软件界面回归、插件市场软件／硬件像素检查及硬件折射专项通过。日志为 `.cache/dreamy-submit-check.log`、`dreamy-submit-full.log`、`dreamy-submit-market-software.log`、`dreamy-submit-market-gpu.log` 和 `dreamy-submit-refraction.log`。本轮仅提交推送插件修复，不生成新的公开插件 Release。
+
+2026-10-06，插件市场层级修复：含 iframe 缩略预览时，市场内容明确放在玻璃背景之上，避免标题和前序卡片被背景虚化覆盖；模型状态滑块仅移除外部反射投影，保留高光、亮边与扭曲。无需修改或重编主程序。官方包校验与完整软件界面回归通过；新增 `npm.cmd run check:dreamy-market-ui -- ..\main`（可加 `--hardware`）使用真实 App、市场弹窗和两个 iframe 预览，覆盖浅／深主题、轻柔／强烈模糊及实际列表滚动。软件／硬件像素检查通过，标题清晰度相对关闭滤镜的基线至少保留 94%；撤掉修复规则时，标题与前两张卡片仅保留约 16%–17%，测试如预期失败。日志为 `.cache/dreamy-market-fix-full.log`、`dreamy-market-fix-software.log`、`dreamy-market-fix-gpu.log`，截图与结果为 `.cache/dreamy-market-ui/`。
+
+本次另通过硬件折射专项：移除投影后，浅／深主题下模型滑块的选中文字仍有真实扭曲，RGB 平均差约 16.64 / 25.04；点击、拖动和不透明回退检查通过。日志为 `.cache/dreamy-market-fix-refraction.log`。
+
 1.1.2 在 Lumi 0.5.13 上复验：固定提交的官方校验器准备及包检查通过，完整软件界面回归和硬件折射专项通过；日志为 `.cache/dreamy-112-full.log`、`.cache/dreamy-112-gpu.log`。版本变化仅更新发布清单、固定宿主及说明，玻璃实现与已验证的 1.1.1 修订相同。
 
 2026-10-06，Lumi 0.5.12 联合发布验证：官方包校验、完整软件界面回归及软件/硬件折射专项检查通过，原始平滑滑轨的选中文字在浅深主题均有实际像素变化，点击和拖动仍可用。完整回归覆盖弹窗虚化开启/关闭实际像素与退出生命周期、减少动态效果、嵌套焦点、窄窗口、真实滑块、趋势浮窗及原生下拉。日志：`.cache/dreamy-styles-full.log`、`dreamy-styles-refraction.log`、`dreamy-styles-gpu.log`；本机未运行 macOS 原生验证。
