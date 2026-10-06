@@ -30,7 +30,7 @@ function notify(method, params) {
 
 async function ensureInitialized() {
   if (state.initialized) return;
-  initialization ||= (async()=>{await rpc('initialize', {clientInfo: {name: 'lumi_codex_extension', title: 'Lumi Codex', version: '2.0.0'}});await notify('initialized', {});state.initialized = true;})();
+  initialization ||= (async()=>{await rpc('initialize', {clientInfo: {name: 'lumi_codex_extension', title: 'Lumi Codex', version: '2.0.1'}});await notify('initialized', {});state.initialized = true;})();
   try { await initialization; } finally { initialization = undefined; }
 }
 

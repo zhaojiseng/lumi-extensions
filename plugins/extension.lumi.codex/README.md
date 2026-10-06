@@ -3,7 +3,7 @@
 在 Lumi 中直接与 Codex 对话并完成任务的**显示层**：经主程序的受限桥接，把本机 `codex app-server` 的 JSON-RPC 会话透传到本插件，由插件渲染对话、工具调用、文件改动、计划与审批。
 
 - 插件 ID：`extension.lumi.codex`
-- 版本：2.0.0（原“Codex 接入/订阅用量”已移除，订阅用量请用主程序内置的 `provider.codex`）
+- 版本：2.0.1（原“Codex 接入/订阅用量”已移除，订阅用量请用主程序内置的 `provider.codex`）
 - 类型：功能插件（`kind: feature`）
 - 权限：`codex.bridge`
 
@@ -21,7 +21,7 @@ Lumi **只作显示桥接**：主程序不解释 Codex 协议、不覆盖沙箱�
 
 ## 依赖与安装
 
-最低宿主版本：**Lumi 0.5.16**，宿主 API v1。
+最低宿主版本：**Lumi 0.5.17**，宿主 API v1。
 
 1. 安装 Codex CLI，并在终端运行 `codex login` 完成登录。
 2. 在 常规设置 → 插件 中启用**内置**“Codex 桥接”（`provider.codex-bridge`，默认关闭）。
@@ -68,9 +68,9 @@ Lumi **只作显示桥接**：主程序不解释 Codex 协议、不覆盖沙箱�
 npm run check -- plugins/extension.lumi.codex
 ```
 
-## 2.0.0 验证记录
+## 2.0.1 验证记录
 
-2026-10-06，Windows x64，匹配宿主 Lumi 0.5.16（`e6fbbc29a84ce4c3e922c98b1771bfddcbf1d693`）。`npm run check` 全部目录包通过；`node scripts/check-codex-ui.mjs <宿主checkout>` 的真实 Electron 沙箱回归通过，覆盖流式消息、跨线程事件撤回、不自动审批、审批失败重试、补充问题、模型强度、目录选择、重命名、删除确认、连接关闭与重连、浅深主题和宽窄布局。截图保存在 `.cache/codex-ui/`。
+2026-10-06，Windows x64，匹配宿主 Lumi 0.5.17（`a3212067edecd15cfe5d312d99c741ea109f9441`）。`npm run check` 全部目录包通过；`node scripts/check-codex-ui.mjs <宿主checkout>` 的真实 Electron 沙箱回归通过，覆盖流式消息、跨线程事件撤回、不自动审批、审批失败重试、补充问题、模型强度、目录选择、重命名、删除确认、连接关闭与重连、浅深主题和宽窄布局。截图保存在 `.cache/codex-ui/`。
 
 审批响应按 Codex 官方 app-server JSON schema 核对，命令与文件审批使用 `{decision}`；回归仅使用假进程和消息，不发送真实账户或付费请求。运行包只包含本插件资源和 MIT 许可，不包含 SDK 运行时或宿主源码。
 
