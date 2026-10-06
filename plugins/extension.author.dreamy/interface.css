@@ -314,6 +314,18 @@
 :scope :is(.segmented > button.active, .vendor-tabs > button.active, .favorite-filter.active, .page-tabs > button.active, .metric-tabs > button.active, .settings-subnav > button.active, .preview-file-tabs > button.active, .local-session-tabs > button[aria-pressed="true"], .market-kinds > button[aria-pressed="true"], .model-choice.selected) {
   backdrop-filter: var(--dream-control-blur) var(--lumi-glass-filter, blur(0px));
 }
+/* Shared switches own one moving lens; legacy navigation classes must not
+   paint a second stationary glass surface on each button. */
+@media (forced-colors: none) {
+  :scope .segmented-switch > button,
+  :scope .segmented-switch > button:is(.active, [aria-pressed="true"], [aria-checked="true"]),
+  :scope .segmented-switch > button:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  :scope .segmented-switch > button:is(.active, [aria-pressed="true"], [aria-checked="true"])::after { display: none; }
+}
 :scope :is(.segmented > button, .vendor-tabs > button, .favorite-filter, .page-tabs > button, .metric-tabs > button, .settings-subnav > button, .preview-file-tabs > button, .local-session-tabs > button, .market-kinds > button, .model-choice, .theme-options > button):focus-visible,
 :scope .switch:focus-visible {
   outline: 2px solid var(--accent);

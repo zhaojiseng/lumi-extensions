@@ -4,7 +4,7 @@
   "kind": "interface",
   "id": "extension.author.dreamy",
   "name": "浮梦 · 梦幻界面",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "液态玻璃风界面：柔彩背景、方向性玻璃亮弧与柔光投影，搭配清晰稳定的数据面板，支持浅色、深色与减少动态效果。",
   "author": "Author",
   "license": "MIT",
