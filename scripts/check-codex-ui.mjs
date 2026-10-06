@@ -2,19 +2,24 @@ import {mkdir,mkdtemp,readFile,writeFile,cp,rm} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {spawn} from 'node:child_process';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 const root=path.resolve(import.meta.dirname,'..'),host=path.resolve(process.argv[2] || '../main');
 const requireHost=createRequire(path.join(host,'package.json')),electron=requireHost('electron');
 const output=path.join(root,'.cache/codex-ui');await mkdir(output,{recursive:true});const fixture=await mkdtemp(path.join(output,'fixture-'));
 try{
   await cp(path.join(root,'plugins/extension.lumi.codex'),path.join(fixture,'plugin'),{recursive:true});
+  const {extensionUiCss}=await import(pathToFileURL(path.join(host,'scripts/extension-ui.mjs')));
+  await writeFile(path.join(fixture,'plugin/lumi-ui.css'),await extensionUiCss(host));
+  const dreamyCss=await readFile(path.join(root,'plugins/extension.author.dreamy/interface.css'),'utf8');
+  await writeFile(path.join(fixture,'themes.json'),JSON.stringify({default:{id:'interface.default',css:'',appearance:{}},dreamy:{id:'extension.author.dreamy',css:dreamyCss,appearance:{transparency:'clear',blur:'soft',distortion:'strong'}}}));
   await writeFile(path.join(fixture,'plugin/lumi-sdk.js'),await readFile(path.join(host,'public/lumi-extension-sdk.js')));
   await writeFile(path.join(fixture,'index.html'),'<meta charset="UTF-8"><iframe sandbox="allow-scripts" src="plugin/index.html" style="width:100%;height:760px;border:0"></iframe><script src="harness.js"></script>');
   await writeFile(path.join(fixture,'harness.js'),String.raw`
-window.fixture={requests:[],answers:[],subscribed:false,thread:0};
+window.fixture={uiTheme:{id:'interface.default',css:'',appearance:{},theme:'light'},requests:[],answers:[],subscribed:false,thread:0};
 const frame=document.querySelector('iframe'),protocol='lumi-extension/1',nonce='fixture';
 fixture.emit=(method,params,id)=>frame.contentWindow.postMessage({protocol,nonce,type:'event',topic:'codex.bridge',payload:{method,params,id}},'*');
 addEventListener('message',event=>{const q=event.data;if(event.source!==frame.contentWindow || q?.protocol!==protocol)return;
-if(q.type==='ready'){frame.contentWindow.postMessage({protocol,nonce,type:'init',context:{theme:'light',locale:'zh-CN',site:{id:'fixture',url:'https://fixture.invalid',name:'Fixture'}},view:{id:'page',slot:'sidebar'}},'*');return;}
+if(q.type==='ready'){frame.contentWindow.postMessage({protocol,nonce,type:'init',uiTheme:fixture.uiTheme,context:{theme:'light',locale:'zh-CN',site:{id:'fixture',url:'https://fixture.invalid',name:'Fixture'}},view:{id:'page',slot:'sidebar'}},'*');return;}
 if(q.type!=='request')return;fixture.requests.push(q);let data={};
 if(q.method==='codex.bridge.subscribe')fixture.subscribed=true;
 if(q.method==='codex.bridge.unsubscribe')fixture.subscribed=false;
@@ -60,7 +65,11 @@ await parent('fixture.emit("turn/completed",{threadId:"thread-1",turn:{id:"turn-
 await child('document.getElementById("delete-thread").click()');if(await parent('fixture.requests.some(q=>q.input?.method==="thread/delete")'))throw new Error('delete before confirmation');
 await child('document.getElementById("cancel-delete").click()');await parent('fixture.emit("lumi/bridge/exited",{detail:"fixture disconnected"})');await until(()=>child('document.getElementById("send").disabled'));
 await child('document.getElementById("reconnect").click()');await until(()=>child('!document.getElementById("send").disabled'));
-for(const mode of ['light','dark'])for(const width of [1150,640]){win.setSize(width+20,900);await child('document.documentElement.dataset.theme='+JSON.stringify(mode));await child('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');await check('document.documentElement.scrollWidth<=innerWidth+1','responsive overflow '+width);fs.writeFileSync(path.join(__dirname,'codex-'+mode+'-'+width+'.png'),(await win.webContents.capturePage()).toPNG());}
+await child('document.getElementById("new-thread").click()');await until(()=>child('document.getElementById("thread-meta").textContent.includes("thread-2")'));
+await parent('fixture.emit("item/completed",{threadId:"thread-2",item:{id:"user-demo",type:"userMessage",content:[{type:"text",text:"整理项目目录，并说明修改内容。"}],status:"completed"}});fixture.emit("item/agentMessage/delta",{threadId:"thread-2",itemId:"answer-demo",delta:"已检查项目结构。\\n我会整理公共组件，保留现有配置，并执行回归检查。"});fixture.emit("item/completed",{threadId:"thread-2",item:{id:"command-demo",type:"commandExecution",command:"npm test",aggregatedOutput:"745 tests · passed",exitCode:0,status:"completed"}})');
+await until(()=>child('!!document.querySelector(".role-user") && !!document.querySelector(".role-command")'));await child('window.stableUser=document.querySelector(".role-user")');await parent('fixture.emit("item/agentMessage/delta",{threadId:"thread-2",itemId:"answer-demo",delta:"\\n检查已完成。"})');await until(()=>child('document.querySelector(".role-assistant").textContent.includes("检查已完成")'));await check('document.querySelector(".role-user")===window.stableUser','streaming recreated unchanged messages');
+const themes=JSON.parse(fs.readFileSync(path.join(__dirname,'themes.json'),'utf8'));let previousColor;
+for(const [skin,uiTheme] of Object.entries(themes))for(const mode of ['light','dark'])for(const width of [1150,640]){win.setSize(width+20,900);await child('document.getElementById("prompt").value="skin draft";document.getElementById("prompt").focus()');await parent('document.querySelector("iframe").contentWindow.postMessage('+JSON.stringify({protocol:'lumi-extension/1',nonce:'fixture',type:'ui-theme',uiTheme:{...uiTheme,theme:mode}})+',"*")');await until(()=>child('document.body.dataset.interface==='+JSON.stringify(uiTheme.id)+' && document.documentElement.dataset.theme==='+JSON.stringify(mode)));await check('document.getElementById("prompt").value==="skin draft" && document.activeElement===document.getElementById("prompt")','skin switch lost draft/focus');await check('!!document.getElementById("lumi-ui-theme") && getComputedStyle(document.getElementById("send")).cursor==="default"','host primitives unavailable');await child('new Promise(r=>setTimeout(r,280))');const color=await child('getComputedStyle(document.getElementById("send")).backgroundColor');if(width===1150 && mode==='light'){if(skin==='dreamy' && color===previousColor)throw new Error('Skin did not style host buttons');previousColor=color;}await child('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');await check('document.documentElement.scrollWidth<=innerWidth+1','responsive overflow '+width);fs.writeFileSync(path.join(__dirname,'codex-'+skin+'-'+mode+'-'+width+'.png'),(await win.webContents.capturePage()).toPNG());}
 console.log('CODEX_UI_OK streaming approvals input retry reconnect models sandbox responsive');win.destroy();app.exit(0);
 }).catch(error=>{console.error(error.stack);app.exit(1);});`);
   const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
@@ -68,5 +77,5 @@ console.log('CODEX_UI_OK streaming approvals input retry reconnect models sandbo
   const timeout=setTimeout(()=>child.kill(),45000);
   const code=await new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',resolve);});clearTimeout(timeout);
   if(code!==0)throw new Error(outputText);console.log(outputText.trim());
-  for(const mode of ['light','dark'])for(const width of [1150,640])await cp(path.join(fixture,`codex-${mode}-${width}.png`),path.join(output,`codex-${mode}-${width}.png`));
+  for(const skin of ['default','dreamy'])for(const mode of ['light','dark'])for(const width of [1150,640])await cp(path.join(fixture,`codex-${skin}-${mode}-${width}.png`),path.join(output,`codex-${skin}-${mode}-${width}.png`));
 }finally{await rm(fixture,{recursive:true,force:true,maxRetries:5,retryDelay:100});}

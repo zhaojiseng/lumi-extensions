@@ -7,7 +7,7 @@ Lumi 官方维护的独立功能插件和界面插件。每个插件独立版本
 | 插件 | 类型 | 功能 | 权限 | 已验证基准 |
 | --- | --- | --- | --- | --- |
 | [工作台便笺](plugins/extension.lumi.notes) | 功能 | 工作台、侧栏和设置中的便笺 | storage | Lumi 0.5.1 / API v1 |
-| [Codex 对话](plugins/extension.lumi.codex) | 功能 | 经主程序 Codex 桥接与本机 `codex app-server` 对话：流式回复、命令执行、diff、计划、审批与会话历史 | codex.bridge | Lumi 0.5.17 / API v1 |
+| [Codex 对话](plugins/extension.lumi.codex) | 功能 | 经宿主默认桥接与本机 `codex app-server` 对话，复用当前皮肤：流式回复、命令执行、diff、计划、审批与会话历史 | codex.bridge | Lumi 0.5.19 / API v1 |
 | [紧凑界面](plugins/extension.lumi.compact) | 界面 | 紧凑侧栏、间距与强调色 | 无 | Lumi 0.5.1 / API v1 |
 | [浮梦 · 梦幻界面](plugins/extension.author.dreamy) | 界面 | 可配置液态玻璃、同步弹窗虚化与圆角框架 | 无 | Lumi 0.5.13 / API v1 |
 

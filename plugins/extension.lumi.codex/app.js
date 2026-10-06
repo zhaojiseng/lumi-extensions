@@ -9,7 +9,9 @@ let initialization, unsubscribe, selection = 0, connected = false;
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
-  if (className) node.className = className;
+  if (tag === 'button') node.className = 'button ' + (className || 'primary');
+  else if (['input','textarea'].includes(tag)) node.className = 'text-input ' + (className || '');
+  else if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
 }
@@ -30,7 +32,7 @@ function notify(method, params) {
 
 async function ensureInitialized() {
   if (state.initialized) return;
-  initialization ||= (async()=>{await rpc('initialize', {clientInfo: {name: 'lumi_codex_extension', title: 'Lumi Codex', version: '2.0.1'}});await notify('initialized', {});state.initialized = true;})();
+  initialization ||= (async()=>{await rpc('initialize', {clientInfo: {name: 'lumi_codex_extension', title: 'Lumi Codex', version: '2.1.0'}});await notify('initialized', {});state.initialized = true;})();
   try { await initialization; } finally { initialization = undefined; }
 }
 
@@ -85,12 +87,12 @@ function textBlock(className, text) {
 }
 
 function renderItem(item) {
-  const article = el('article', 'item ' + (item.type || 'unknown'));
+  const article = el('article', 'item surface panel ' + (item.type || 'unknown'));
   const role = {userMessage: 'user', agentMessage: 'assistant', reasoning: 'reasoning', plan: 'plan', commandExecution: 'command', fileChange: 'diff', mcpToolCall: 'tool', dynamicToolCall: 'tool', webSearch: 'search', enteredReviewMode: 'review', exitedReviewMode: 'review', contextCompaction: 'event', error: 'error'}[item.type] || 'event';
   article.classList.add('role-' + role);
   const head = el('div', 'item-head');
-  head.append(el('span', 'role', role));
-  if (item.status) head.append(el('span', 'badge', item.status));
+  head.append(el('span', 'role', {user:'你',assistant:'Codex',reasoning:'思考',plan:'计划',command:'命令',diff:'文件改动',tool:'工具',search:'搜索',review:'审查',event:'事件',error:'错误'}[role]));
+  if (item.status) head.append(el('span', 'badge pill muted', {inProgress:'处理中',completed:'已完成',failed:'失败'}[item.status] || item.status));
   article.append(head);
   if (item.type === 'userMessage') {
     for (const part of item.content || []) if (part && part.type === 'text') article.append(el('p', 'text', part.text));
@@ -127,12 +129,19 @@ function renderItem(item) {
   return article;
 }
 
+const renderedItems = new Map();
 function renderConversation() {
   const container = $('conversation');
   if (!container) return;
   const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 40;
-  container.textContent = '';
-  for (const item of state.items) container.append(renderItem(item));
+  const keep = new Set();let cursor = container.firstChild;
+  for (const item of state.items) {
+    const key=item.id,signature=JSON.stringify(item);let cached=renderedItems.get(key);
+    if(!cached || cached.signature!==signature){const node=renderItem(item);if(cached?.node===cursor)cursor=cursor.nextSibling;cached?.node.remove();cached={signature,node};renderedItems.set(key,cached);}
+    keep.add(key);if(cached.node!==cursor)container.insertBefore(cached.node,cursor);cursor=cached.node.nextSibling;
+  }
+  for(const [key,cached] of renderedItems)if(!keep.has(key)){cached.node.remove();renderedItems.delete(key);}
+  container.querySelector('.error-text')?.remove();
   if (state.error) container.append(el('p', 'error-text', state.error));
   if (atBottom) container.scrollTop = container.scrollHeight;
 }
@@ -146,7 +155,7 @@ function renderThreads() {
   if (!rows.length) list.append(el('li', 'muted small', '暂无会话'));
   for (const thread of rows) {
     const li = el('li', thread.id === (state.thread && state.thread.id) ? 'active' : '');
-    const button = el('button', 'thread-row');
+    const button = el('button', 'thread-row nav-item'+(thread.id===state.thread?.id ? ' active' : ''));button.setAttribute('aria-pressed',String(thread.id===state.thread?.id));
     button.append(el('strong', '', thread.name || thread.preview || '未命名会话'));
     button.append(el('span', 'muted small', new Date((thread.updatedAt || thread.createdAt || 0) * 1000).toLocaleString('zh-CN')));
     button.addEventListener('click', () => void openThread(thread.id));
@@ -174,7 +183,7 @@ function renderApprovals() {
   if (!container) return;
   container.textContent = '';
   for (const approval of state.approvals) {
-    const card = el('div', 'approval');
+    const card = el('div', 'approval surface tool-config-card');
     card.append(el('strong', '', approval.title));
     card.append(el('p', 'muted small', approval.detail || ''));
     if (approval.command) card.append(el('code', '', approval.command));
@@ -186,7 +195,7 @@ function renderApprovals() {
       if (question.isSecret) { input.type='password';input.setAttribute('autocomplete','off'); }
       if (question.options?.length) for (const option of question.options) input.append(new Option(option.label,option.label));
       input.setAttribute('aria-label',question.question || question.id);
-      label.append(input);card.append(label);answers[question.id]=input;
+      if(input.tagName==='SELECT'){const wrap=el('span','select-wrap');wrap.dataset.decorated='false';wrap.append(input);label.append(wrap);}else label.append(input);card.append(label);answers[question.id]=input;
     }
     const row = el('div', 'approval-actions');
     for (const action of approval.actions) {
@@ -523,7 +532,7 @@ async function startConnection() {
       const result = await sdk.codex.bridge.status();
       status.textContent = result.installed ? '已发现 Codex CLI，桥接状态：' + result.state + (result.detail ? ' · ' + result.detail : '') : '未发现 Codex CLI，请先安装并在终端运行 codex login。';
     } catch (error) {
-      status.textContent = '无法使用 Codex 桥接，请确认已启用内置“Codex 桥接”，并更新 Lumi。(' + messageOf(error) + ')';
+      status.textContent = '无法使用 Codex 桥接，请检查 Codex CLI 或更新 Lumi。(' + messageOf(error) + ')';
     }
   };
   $('conn-refresh').addEventListener('click', () => void refresh());
