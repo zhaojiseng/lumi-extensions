@@ -180,16 +180,45 @@
 }
 
 /* The shell background is already soft; repeated surfaces only need tint and sheen. */
-:is(.surface, .panel, .stat-card, .tool-config-card, .model-card, .billing-tool, .billing-total, .token-overview-card, .site-row, .model-choice, .local-session-event, .backup-list > div, .welcome-features > div, .welcome-hero, .plugin-settings-group, .market-item, .plugin-details-section) {
+:is(.surface, .panel, .stat-card, .tool-config-card, .model-card, .billing-tool, .billing-total, .token-overview-card, .site-row, .model-choice, .local-session-event, .backup-list > div, .welcome-features > div, .welcome-hero, .market-item) {
   background-image: var(--dream-sheen);
   background-color: var(--panel);
   border-color: var(--dream-glass-border);
   box-shadow: var(--dream-surface-shadow), inset 0 -1px 0 var(--dream-glass-border);
 }
-/* Primary containers use a shallow local backdrop. Text is never filtered;
-   inset rows reuse the material without another compositor layer. */
-:scope :is(.surface.panel, .stat-card, .tool-config-card, .model-card, .token-overview-card, .model-toolbar, .statistics-filter, .welcome-hero) { backdrop-filter: var(--dream-control-blur); }
-:scope[data-appearance-transparency="solid"] :is(.surface.panel, .stat-card, .tool-config-card, .model-card, .token-overview-card, .model-toolbar, .statistics-filter, .welcome-hero) { backdrop-filter: none; }
+/* Layer order: page image, container backdrop (-1), content (auto), labels (1),
+   selection lens (2), popup layers (host-owned). Container backgrounds do not
+   become backdrop roots, so nested lenses can still sample visible details. */
+:scope :is(.surface.panel, .stat-card, .tool-config-card, .model-card, .token-overview-card, .model-toolbar, .statistics-filter, .welcome-hero):not(.modal) {
+  --lumi-glass-surface: 1;
+  --lumi-glass-filter: blur(0px);
+  --dream-container-fill: var(--panel);
+  position: relative;
+  z-index: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+:scope :is(.surface.panel, .stat-card, .tool-config-card, .model-card, .token-overview-card, .model-toolbar, .statistics-filter, .welcome-hero):not(.modal)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--dream-sheen) var(--dream-container-fill);
+  backdrop-filter: var(--dream-popup-blur) var(--lumi-glass-filter, blur(0px));
+}
+:scope .stat-card.balance-card { --dream-container-fill: var(--accent-soft); }
+:scope[data-appearance-transparency="solid"] :is(.surface.panel, .stat-card, .tool-config-card, .model-card, .token-overview-card, .model-toolbar, .statistics-filter, .welcome-hero)::before { backdrop-filter: none; }
+/* Plugin lists are rows inside one glass panel, not a stack of square cards. */
+:scope .plugin-settings-group, :scope .plugin-details-section {
+  background: transparent;
+  border-color: var(--line);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+:scope .plugin-settings-group + .plugin-settings-group { border-top: 1px solid var(--line); }
+:scope .plugin-group-heading { border-radius: 8px; }
 /* Controls and inset surfaces share the translucent palette without extra blur layers. */
 :is(.button:not(.primary):not(.danger):not(.ghost), .global-search, .text-input, .select-wrap select, .multi-trigger, .favorite-filter, .context-setting input, .local-session-pagination input) {
   background-image: var(--dream-sheen);
@@ -240,6 +269,7 @@
 .button:disabled { box-shadow: none; }
 /* Marketplace selection keeps the host's measured sliding thumb and drag lifecycle. */
 :scope :is(.model-mode-selector, .segmented, .market-kinds) {
+  --lumi-glass-filter: blur(0px);
   background: var(--dream-sheen) var(--dream-glass);
   border-color: var(--dream-glass-border);
   box-shadow: inset 0 1px 0 var(--dream-spec), inset 0 -1px 0 var(--line);
@@ -400,6 +430,7 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
   backdrop-filter: none !important;
 }
 .select-wrap {
+  --lumi-glass-filter: blur(0px);
   --dream-choice-height: 40px;
   --dream-choice-radius: 13px;
   --dream-choice-padding-block: 10px;
@@ -559,4 +590,12 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
   :scope { --sidebar-width: 188px; --shell-inset: 10px; }
   :scope > .main-area { border-radius: 18px; }
   .content-container { padding: 16px; }
+}
+
+/* All background glass uses the chosen blur radius. Selection lenses keep
+   zero blur so their label magnification remains readable. */
+:scope, :scope[data-appearance-blur] { --dream-blur: var(--dream-popup-blur); --dream-control-blur: var(--dream-popup-blur); }
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  :scope, :scope[data-appearance-blur] { --dream-blur: none; --dream-control-blur: none; }
+  :scope :is(.surface.panel, .stat-card, .tool-config-card, .model-card, .token-overview-card, .model-toolbar, .statistics-filter, .welcome-hero)::before { backdrop-filter: none; }
 }
