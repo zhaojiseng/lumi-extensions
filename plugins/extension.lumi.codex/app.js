@@ -1062,7 +1062,14 @@ async function pickDirectory() {
 
 function resizePrompt() {
   const stream = $('conversation');$('chat-shell').style.setProperty('--chat-scrollbar',Math.max(0,stream.offsetWidth-stream.clientWidth)+'px');
-  const prompt = $('prompt'),limit = Math.min(160, Math.max(48, $('chat-shell').clientHeight * .22));prompt.style.height = 'auto';prompt.style.height = Math.min(limit, Math.max(48, prompt.scrollHeight)) + 'px';
+  const prompt = $('prompt'),style = getComputedStyle(prompt),minimum = parseFloat(style.minHeight) || 48;
+  prompt.style.height = 'auto';
+  const pane = prompt.closest('.conversation'),area = prompt.closest('.composer-area');
+  // Reserve readable message space after measured headings, wrapped controls
+  // and approvals. Large host fonts need a smaller draft in short windows.
+  const available = pane.clientHeight - pane.querySelector('.conversation-head').getBoundingClientRect().height - area.getBoundingClientRect().height + prompt.getBoundingClientRect().height - 40;
+  const limit = Math.max(minimum, Math.min(parseFloat(style.maxHeight) || 160, $('chat-shell').clientHeight * .22, available));
+  prompt.style.height = Math.min(limit, Math.max(minimum, prompt.scrollHeight)) + 'px';
 }
 function syncSidebar() {const narrow = innerWidth < 760, open = $('chat-shell').classList.contains('sidebar-open');$('threads-panel').inert = narrow && !open;$('toggle-threads').setAttribute('aria-expanded', String(!narrow || open));}
 function setSidebar(open) { $('chat-shell').classList.toggle('sidebar-open', open);syncSidebar();if (innerWidth < 760) {if (open) $('thread-search').focus();else if ($('threads-panel').contains(document.activeElement)) $('toggle-threads').focus();}}
@@ -1082,7 +1089,7 @@ function wireChat() {
   document.addEventListener('keydown', event => {if (event.key === 'Escape') {setSidebar(false);hideTurnPreview();document.querySelector('.thread-actions').open=false;}});
   document.addEventListener('click', event => {const actions=document.querySelector('.thread-actions');if (!actions.contains(event.target) || event.target.closest('.actions-menu button')) actions.open=false;});
   $('conversation').addEventListener('scroll', () => {const focused = document.activeElement;if ($('turn-rail').contains(focused)) showTurnPreview(focused);else hideTurnPreview();scheduleTurnRail();});
-  railObserver = new ResizeObserver(scheduleTurnRail);railObserver.observe($('stream-stage'));
+  railObserver = new ResizeObserver(() => {resizePrompt();scheduleTurnRail();});railObserver.observe($('stream-stage'));
   $('conversation').addEventListener('scroll', () => {const top = $('conversation').scrollTop, movingUp = top < lastScrollTop;lastScrollTop = top;renderStatus();if (movingUp && top < 50 && !state.switching && !state.history?.loading && !state.history?.error) void loadOlder();});
   $('prompt').addEventListener('input', resizePrompt);
   window.addEventListener('resize', () => {hideTurnPreview();resizePrompt();syncSidebar();scheduleTurnRail();});syncSidebar();

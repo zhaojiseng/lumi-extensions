@@ -4,7 +4,7 @@
   "kind": "feature",
   "id": "extension.lumi.codex",
   "name": "Codex 对话",
-  "version": "2.2.10",
+  "version": "2.2.11",
   "description": "经主程序的 Codex 桥接，直接与 Codex 的 app-server 会话交互：流式回复、命令执行、文件改动、计划、审批与会话历史。Lumi 仅作显示桥接，沙箱与审批完全由 Codex 自身配置决定。",
   "author": "Lumi contributors",
   "license": "MIT",
