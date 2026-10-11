@@ -2,6 +2,13 @@
 
 日期：2026-10-11。当前记录为模型网关 1.0.1 正式发布验证；公开状态见最上方发布记录。下方开发构建、安装和伴随程序结果保留为历史。
 
+## 1.0.1 · 公开发布验收（2026-10-11）
+
+- [模型网关 1.0.1](https://github.com/zhaojiseng/lumi-extensions/releases/tag/extension.lumi.gateway-v1.0.1) 已公开，发布时间 2026-10-11T04:28:21Z；标签固定 `89066089c8f4c69508c41ded02840871947f7300`。本次 ZIP 与 .sha256 两项附件完整，发布前下载草稿，逐项核对本地散列与 GitHub digest，公开后再次核对，同一草稿 ID 409405901。
+- ZIP 为 59514 字节，SHA-256 `4134ddff31f2c5ceecda284ce0825f54a386b40a7969fe0fc2e915505c5ade85`；ZIP 的七项资源与正式提交、当前安装目录和 package-stage 原始字节一致，完整 MIT 许可在包内，没有宿主、开发源码、用户数据或凭据。证据 `.cache/release-101/{package-verification,draft-verification,public-verification}.json`。
+- 最低宿主为 [Lumi 1.0.1](https://github.com/zhaojiseng/lumi/releases/tag/v1.0.1)，宿主先于本插件公开。host.json 固定该标签完整提交 `a0d48a2552c39e7002896385b50cc02263c1fa75` / API v1；官方校验器已验证全部五插件，实际 Windows 包内核心的沙箱 UI 验证见下节。主程序正式流程第 2 次执行三平台与两平台安装包全部通过，六项附件清单/digest 已核验。
+- 1.0.0 标签因宿主检查失败未公开 Release，原标签保留；1.0.1 发布没有移动或覆盖既有公开标签/附件。其他插件资源与版本保持，已公开梦幻/Codex 包分别核对原标签。实际 CLI/提供者、macOS/Linux 的网关专项 UI 兼容仍受下节记录范围约束。
+
 ## 1.0.1 · 正式发行修订准备（2026-10-11）
 
 - 插件清单与 README 为 1.0.1，最低 Lumi 1.0.1 / 扩展 API v1；七项安装资源与 package-stage 原始字节一致，插件 ID 和既有数据不变。两个仓库的 1.0.0 标签保留，宿主该标签 macOS 检查失败，未公开 Release；首次正式发行改用 1.0.1。
