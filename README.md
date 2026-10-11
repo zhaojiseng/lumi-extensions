@@ -8,8 +8,22 @@ Lumi 官方维护的独立功能插件和界面插件。每个插件独立版本
 | --- | --- | --- | --- | --- |
 | [工作台便笺](plugins/extension.lumi.notes) | 功能 | 工作台、侧栏和设置中的便笺 | storage | Lumi 0.5.1 / API v1 |
 | [Codex 对话](plugins/extension.lumi.codex) | 功能 | 经宿主默认桥接与本机 `codex app-server` 对话，复用当前皮肤：流式回复、命令执行、diff、计划、审批与会话历史 | codex.bridge | Lumi 0.5.19 / API v1 |
+| [模型网关](plugins/extension.lumi.gateway) | 功能 | 统一接入、供应商与模型、两段整流、多协议转换及本地请求记录 | gateway.* 五项权限、storage | Lumi 1.0.0 / API v1 |
 | [紧凑界面](plugins/extension.lumi.compact) | 界面 | 紧凑侧栏、间距与强调色 | 无 | Lumi 0.5.1 / API v1 |
 | [浮梦 · 梦幻界面](plugins/extension.author.dreamy) | 界面 | 可配置液态玻璃、同步弹窗虚化与圆角框架 | 无 | Lumi 0.5.13 / API v1 |
+
+## 目录与修改入口
+
+| 目录 | 用途 | 网关当前入口 |
+| --- | --- | --- |
+| `sources/` | 开发工程、测试与开发说明 | 页面在 `sources/extension.lumi.gateway/package-stage/` 修改 |
+| `plugins/` | 当前可直接安装的插件目录包 | `plugins/extension.lumi.gateway/`，从页面源目录同步七个文件 |
+| `release/` | 按版本或日期保存的交付副本、ZIP 与校验文件，Git 忽略 | 正式发布包为 `release/extension.lumi.gateway-v1.0.0.zip` |
+| `.cache/` | 固定宿主、编译缓存、隔离测试结果与截图，Git 忽略 | 不作为安装目录或开发入口 |
+
+网关页面的维护顺序是 `sources/.../package-stage → plugins/extension.lumi.gateway → release/<交付批次>`。只在页面源目录修改，再验证、同步；安装时复制 `plugins` 中整个同 ID 文件夹。`release` 中已有交付副本保留原样。其他没有独立开发工程的插件直接在自己的 `plugins/<ID>/` 中维护。
+
+完整目录树、网关核心与主程序的边界、校验命令见 [目录结构与维护入口](docs/DIRECTORY_STRUCTURE.md)。
 
 ## 安装
 
@@ -31,11 +45,13 @@ npm run check
 npm run check -- plugins/extension.lumi.notes
 ```
 
-`host.json` 固定 Lumi v0.5.13 的完整提交 SHA。准备命令只在忽略的 `.cache/` 下获取宿主源码和校验依赖，不下载或启动 Electron；校验直接复用该版本宿主的官方规则。SDK 类型在 `sdk/lumi-extension.d.ts`，运行时 `lumi-sdk.js` 由 Lumi 提供。
+`host.json` 固定 Lumi v1.0.0 的完整提交 SHA。准备命令只在忽略的 `.cache/` 下获取宿主源码和校验依赖，不下载或启动 Electron；校验直接复用该版本宿主的官方规则。SDK 类型在 `sdk/lumi-extension.d.ts`，运行时 `lumi-sdk.js` 由 Lumi 提供。
+
+模型网关 1.0.0 的最低宿主为 Lumi 1.0.0；API 版本仍为 1。`npm run check` 使用固定官方宿主校验全部插件，真实网关界面与运行时还需单独执行回归，具体命令见 [目录说明](docs/DIRECTORY_STRUCTURE.md)。
 
 `plugins/` 只保存可直接安装的目录包。需要 React/TypeScript 构建的插件可把开发工程放到 `sources/<插件ID>/`，将自包含 web 资源输出到对应 `plugins/<插件ID>/`。不要将依赖树、缓存、密钥或用户数据放入插件包。
 
-完整外部接口及沙箱边界见 [Lumi v0.5.13 插件开发指南](https://github.com/zhaojiseng/lumi/blob/v0.5.13/docs/PLUGIN_DEVELOPMENT.md)。外部插件目前不能注册主进程能力、写入 CLI 配置或访问任意文件系统；界面插件只提供受校验的 CSS。
+完整外部接口及沙箱边界见 [Lumi v1.0.0 插件开发指南](https://github.com/zhaojiseng/lumi/blob/v1.0.0/docs/PLUGIN_DEVELOPMENT.md)。外部插件不能自行注册主进程能力或访问任意文件系统；Codex、网关等能力只通过宿主已实现且经过权限校验的固定接口提供。界面插件只提供受校验的 CSS。
 
 ## 独立发布
 
@@ -47,11 +63,11 @@ git tag extension.lumi.notes-v1.0.0
 git push origin extension.lumi.notes-v1.0.0
 ```
 
-打包生成 `release/<插件ID>-v<版本>.zip` 和对应 `.sha256`。ZIP 只包含该插件目录，不含宿主、开发源码或仓库工具。启用下述自动化后，标签会验证清单版本并自动发布该插件的 GitHub Release；标签提交中其他插件保持各自版本。
+打包生成 `release/<插件ID>-v<版本>.zip` 和对应 `.sha256`。ZIP 只包含该插件目录，不含宿主、开发源码或仓库工具。当前自动化模板尚未启用，推送标签不会自动发布插件。使用已有 GitHub CLI 登录手动创建草稿、上传 ZIP 与 `.sha256`，下载草稿附件核对 SHA-256 后公开；目标插件依赖的新宿主须先公开。标签提交中其他插件保持各自版本。
 
 ## 自动化模板
 
-`.github/workflow-templates/` 包含提交/PR 校验和按插件标签发布的 GitHub Actions 模板。当前创建仓库的 GitHub 凭据缺少 `workflow` 权限，因此模板尚未启用。
+`.github/workflow-templates/` 包含提交/PR 校验和按插件标签发布的 GitHub Actions 模板。模板当前尚未启用，插件 Release 采用上述手动流程。
 
 维护者补齐凭据权限后，将两份 YAML 复制到 `.github/workflows/` 并提交推送即可启用。使用 GitHub CLI 时，可运行 `gh auth refresh -h github.com -s workflow` 和 `gh auth setup-git` 更新登录及 Git 凭据配置。该步骤需要在 GitHub 完成授权。
 

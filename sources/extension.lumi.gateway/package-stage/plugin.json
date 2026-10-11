@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "extension.lumi.gateway",
+  "name": "模型网关",
+  "version": "1.0.0",
+  "hostApiVersion": 1,
+  "description": "在 Lumi 中管理供应商与模型、统一客户端接入、两段请求整流、多协议转换及本地请求记录。",
+  "author": "Lumi contributors",
+  "license": "MIT",
+  "permissions": [
+    "gateway.control",
+    "gateway.config",
+    "gateway.records.read",
+    "gateway.records.manage",
+    "gateway.cli-config",
+    "storage"
+  ],
+  "networkOrigins": [],
+  "contributions": [
+    {
+      "id": "gateway",
+      "slot": "sidebar",
+      "title": "模型网关",
+      "entry": "index.html",
+      "section": "tools",
+      "order": 240
+    },
+    {
+      "id": "settings",
+      "slot": "settingsTab",
+      "title": "模型网关",
+      "entry": "index.html",
+      "order": 240
+    }
+  ],
+  "minHostVersion": "1.0.0"
+}

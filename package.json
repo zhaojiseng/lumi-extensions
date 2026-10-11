@@ -10,6 +10,9 @@
   "scripts": {
     "setup:host": "node scripts/setup-host.mjs",
     "check": "node scripts/check.mjs",
+    "check:gateway": "node scripts/check-gateway.mjs",
+    "check:gateway-host": "node scripts/check-gateway-host.mjs",
+    "check:gateway-ui": "node sources/extension.lumi.gateway/scripts/check-integration-ui.mjs ../main",
     "check:dreamy-ui": "node scripts/check-dreamy-ui.mjs",
     "check:dreamy-market-ui": "node scripts/check-dreamy-market-ui.mjs",
     "check:dreamy-controls-ui": "node scripts/check-dreamy-controls-ui.mjs",

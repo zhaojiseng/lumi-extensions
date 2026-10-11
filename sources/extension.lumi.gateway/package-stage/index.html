@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+    <title>模型网关</title>
+    <link rel="stylesheet" href="lumi-ui.css" data-lumi-ui>
+    <link rel="stylesheet" href="style.css">
+    <script src="lumi-sdk.js" defer></script>
+    <script src="workbench.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body data-lumi-ui>
+    <main class="page gateway-page">
+      <header class="page-intro">
+        <div><h1>模型网关</h1><p>管理上游模型与客户端接入，查看实际请求与响应。</p></div>
+        <div class="gateway-status-badges"><span id="connection-badge" class="pill muted">未连接</span><span id="runtime-badge" class="pill muted">读取设置中</span></div>
+      </header>
+      <div id="unsupported" class="warning-banner gateway-notice" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg><span>当前宿主未提供网关接口。请等待兼容版本；此页面不会修改本机 CLI 配置。</span></div>
+      <div id="status-message" class="info-note gateway-notice" role="status" aria-live="polite" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg><span></span></div>
+      <nav class="page-tabs" aria-label="网关页面"><button type="button" data-tab="gateway" aria-current="page" class="active">运行概况</button><button type="button" data-tab="rectify" data-v2 hidden>整流规则</button><button type="button" data-tab="records">请求记录</button><button type="button" data-tab="settings">接入与设置</button></nav>
+      <section id="tab-gateway" data-panel="gateway">
+        <section id="chain-panel" class="surface panel gateway-chain" data-v2 hidden aria-labelledby="gateway-overview-name">
+          <div id="gateway-overview-header" class="gateway-overview-header">
+            <div class="gateway-overview-heading"><h3 id="gateway-overview-name">模型网关</h3><span id="listener-state" class="pill muted">未连接</span></div>
+            <div class="gateway-actions"><button id="refresh-status" type="button" class="button default">刷新</button></div>
+          </div>
+          <div id="gateway-overview-addresses" class="gateway-overview-addresses" aria-label="网关接入地址">
+            <div><span class="small-text muted">OpenAI Base URL</span><code id="overview-openai-url">连接后显示</code></div>
+            <div><span class="small-text muted">Anthropic Base URL</span><code id="overview-anthropic-url">连接后显示</code></div>
+          </div>
+          <div id="chain-flow" class="gateway-flow" aria-label="请求链路与配置">
+            <svg id="chain-flow-wires" class="gateway-flow-wires" aria-hidden="true"></svg>
+            <div class="gateway-flow-node gateway-agent-node"><span class="gateway-node-symbol" aria-hidden="true">◇</span><strong>Agent</strong><span id="chain-agent" class="small-text muted">等待客户端</span></div>
+            <button id="chain-entry-rules" type="button" class="gateway-flow-link gateway-entry-link" aria-label="查看 Agent 与 Lumi 的入口整流"><span>入口整流</span></button>
+            <div class="gateway-flow-node gateway-lumi-node"><button id="chain-lumi-settings" type="button" class="gateway-lumi-settings" aria-label="打开网关设置" aria-haspopup="dialog" title="打开网关设置" disabled></button><span class="gateway-node-symbol" aria-hidden="true">✦</span><strong>Lumi</strong><label class="gateway-listener-switch"><input id="chain-listener-toggle" type="checkbox" role="switch" aria-label="网关开关" disabled><span class="gateway-switch-track" aria-hidden="true"></span><span id="chain-listener-label">未连接</span></label><span id="chain-address" class="small-text muted">本机模型网关 · 点击设置</span></div>
+            <div class="gateway-flow-link gateway-selection-link" aria-hidden="true"><span>模型选择</span></div>
+            <div class="gateway-chain-catalog">
+              <div class="gateway-catalog-heading"><div><strong>供应商</strong></div><button id="chain-model-rules" type="button" class="gateway-flow-link" aria-label="查看供应商与模型的整流"><span>模型整流</span></button><div><strong>模型</strong></div></div>
+              <div id="chain-catalog" class="gateway-catalog-graph" aria-label="供应商与对应模型">
+                <div id="chain-catalog-add" class="gateway-catalog-add"><button id="chain-provider-add" type="button" class="gateway-provider-node" aria-label="添加供应商" title="添加供应商" disabled>＋</button><button id="chain-model-add" type="button" class="gateway-model-node" aria-label="从供应商获取模型" title="从供应商获取模型" disabled>＋</button></div>
+              </div>
+              <p id="chain-catalog-hint" class="field-help">点击供应商编辑；模型显示可在供应商中设置。</p>
+            </div>
+          </div>
+          <div class="gateway-request-footer">
+            <div class="gateway-chain-footer"><div class="gateway-chain-counts"><span><strong id="chain-total">—</strong>请求</span><span><strong id="chain-attempts">—</strong>上游尝试</span><span><strong id="chain-rectified">—</strong>整流</span><span><strong id="chain-rerouted">—</strong>改道</span><span><strong id="chain-errors">—</strong>Agent 收到错误</span></div></div>
+            <div id="chain-requests" class="gateway-chain-requests" aria-label="最近请求：模型、速率和耗时" hidden></div>
+            <details id="chain-diagnostics" class="gateway-request-diagnostics" hidden>
+              <summary>请求详情 <strong id="chain-title">等待请求</strong><span id="chain-live" class="pill muted">未连接</span></summary>
+              <div class="gateway-request-summary"><span id="chain-result" class="field-help">暂无实际请求。</span><div class="gateway-chain-selection small-text muted"><span>当前供应商：<span id="chain-provider">等待选择</span></span><span>实际模型：<span id="chain-model">等待请求</span></span></div></div>
+              <ol id="chain-events" class="gateway-chain-events" aria-label="选中请求的实际时间线"></ol>
+              <div id="chain-changes" class="gateway-chain-changes"></div>
+            </details>
+          </div>
+        </section>
+        <form id="setup-form" class="gateway-form" hidden>
+          <div class="gateway-section">
+            <div class="section-heading"><div><h3>首次设置</h3></div></div>
+            <div class="gateway-two-columns">
+              <div class="gateway-field"><label class="field-label" for="setup-alias">网关名称</label><input id="setup-alias" maxlength="100" value="模型网关" required class="text-input"></div>
+              <div class="gateway-field"><label class="field-label" for="setup-port">数据监听端口</label><input id="setup-port" type="number" min="1024" max="65535" value="18080" required class="text-input"></div>
+              <div class="gateway-field"><label class="field-label" for="setup-route-id">首条路由 ID</label><input id="setup-route-id" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._\-]{0,63}" value="primary" required class="text-input"></div>
+              <div class="gateway-field"><label class="field-label" for="setup-client">客户端别名</label><input id="setup-client" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._\-]{0,63}" value="codex" required class="text-input"></div>
+            </div>
+          </div>
+          <div class="gateway-field">
+            <label class="field-label" for="setup-protocol">上游协议</label>
+            <div class="select-wrap" data-decorated="false" data-tone="sage"><select id="setup-protocol"><option value="openai">OpenAI 兼容</option><option value="anthropic">Anthropic Messages</option></select><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></div>
+          </div>
+          <div class="gateway-field"><label class="field-label" for="setup-upstream">上游 base URL</label><input id="setup-upstream" type="url" maxlength="2048" placeholder="https://api.example.com/v1" required class="text-input"></div>
+          <div class="gateway-two-columns">
+            <div class="gateway-field"><label class="field-label" for="setup-upstream-key">上游 API key</label><input id="setup-upstream-key" type="password" autocomplete="off" spellcheck="false" maxlength="8192" data-secret required class="text-input"></div>
+            <div class="gateway-field"><label class="field-label" for="setup-client-key">接入 API Key</label><div class="gateway-key-input"><input id="setup-client-key" type="password" autocomplete="off" spellcheck="false" minlength="16" maxlength="8192" placeholder="留空自动生成" data-secret class="text-input"><div class="gateway-key-actions"><button id="setup-key-generate" type="button" class="button default">自动生成</button><button id="setup-key-copy" type="button" class="button default" disabled>复制</button></div></div></div>
+          </div>
+          <input id="setup-tier" type="checkbox" checked hidden>
+          <details class="gateway-advanced">
+            <summary class="advanced-toggle">高级网关设置<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
+            <div class="gateway-two-columns">
+              <div class="gateway-field"><label class="field-label" for="setup-request-mib">最大请求大小（MiB）</label><input id="setup-request-mib" type="number" min="0.00000095367431640625" max="4" step="any" value="2" required class="text-input"></div>
+              <div class="gateway-field"><label class="field-label" for="setup-concurrency">并发上限</label><input id="setup-concurrency" type="number" min="1" max="128" value="32" required class="text-input"></div>
+            </div>
+            <div class="gateway-field"><label class="field-label" for="setup-management-port">连接端口</label><input id="setup-management-port" type="number" min="1024" max="65535" value="18081" required class="text-input"></div>
+            <p class="field-help">Lumi 内部连接使用，须与数据端口不同。端口范围为 1024–65535。</p>
+          </details>
+          <p class="field-help">接入 API Key 可留空自动生成，也可点击生成并复制。保存成功后显示本次生成的 Key，CLI 入口接管会自动使用它。</p>
+          <button type="button" data-submit="setup-form" class="button primary">保存并连接</button>
+        </form>
+        <details id="local-settings-details" class="gateway-settings-content gateway-advanced" hidden>
+          <summary class="advanced-toggle">网关参数<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
+        <details class="gateway-runtime-details gateway-advanced">
+          <summary class="advanced-toggle">运行状态</summary>
+          <div class="gateway-runtime-strip small-text muted"><span>管理端 <code id="overview-management-address">尚未设置</code></span><span>监听地址 <code id="listener-address">—</code></span><span>进行中 <strong id="active-count">—</strong></span><span>正文录制 <strong id="body-state">未知</strong></span><span id="encryption-state">连接后读取系统加密状态</span></div>
+        </details>
+        <section id="access-settings" class="gateway-form" aria-labelledby="access-title">
+          <div class="section-heading"><div><h3 id="access-title">Agent 接入</h3><p>接入 API Key 在 Lumi 中管理，Agent 只负责发送请求。</p></div></div>
+          <div class="gateway-client-address"><span>OpenAI Base URL</span><code id="agent-openai-url">连接后显示</code></div><div class="gateway-client-address"><span>Anthropic Base URL</span><code id="agent-anthropic-url">连接后显示</code></div>
+          <form id="access-form" class="gateway-form">
+            <div id="access-route-field" class="gateway-field" hidden><label class="field-label" for="access-route">接入入口</label><div class="select-wrap" data-decorated="false" data-tone="sage"><select id="access-route"></select></div></div>
+            <div class="gateway-field"><label class="field-label" for="access-key">接入 API Key</label><div class="gateway-key-input"><input id="access-key" type="password" autocomplete="off" spellcheck="false" minlength="16" maxlength="8192" placeholder="输入或自动生成新的 Key" data-secret required class="text-input"><div class="gateway-key-actions"><button id="access-key-generate" type="button" class="button default">自动生成</button><button id="access-key-copy" type="button" class="button default" disabled>复制</button></div></div></div>
+            <p id="access-key-hint" class="field-help">自动生成后显示并可复制，保存后保留本次生成结果；客户端认证不会发给供应商。</p>
+            <p id="access-draft-status" class="field-help" aria-live="polite"></p>
+            <div class="gateway-actions"><button type="button" data-submit="access-form" class="button primary">保存接入 API Key</button><button id="access-cancel" type="button" class="button default">取消密钥编辑</button></div>
+          </form>
+          <div id="generated-client-key" class="gateway-generated-key" hidden>
+            <label class="field-label" for="generated-client-key-value">本次生成的接入 API Key</label>
+            <textarea id="generated-client-key-value" readonly rows="2" autocomplete="off" spellcheck="false" class="text-input gateway-generated-key-value"></textarea>
+            <div class="gateway-key-actions"><button id="generated-key-copy" type="button" class="button default">复制 Key</button><span class="field-help">已保存，可复制到 Agent。</span></div>
+          </div>
+          <p class="field-help">运行中可以保存新 Key。更换后，新请求使用新 Key；CLI 接管配置可从“接入与设置”重新预览和应用。</p>
+        </section>
+        <form id="local-form" class="gateway-form" hidden>
+          <div class="gateway-section">
+            <div class="section-heading"><div><h3>网关设置</h3></div></div>
+            <div class="gateway-two-columns">
+              <div class="gateway-field"><label class="field-label" for="local-alias">网关名称</label><input id="local-alias" maxlength="100" required class="text-input"></div>
+              <div class="gateway-field"><label class="field-label" for="local-port">数据监听端口</label><input id="local-port" type="number" min="1024" max="65535" required class="text-input"></div>
+            </div>
+          </div>
+          <details class="gateway-advanced">
+            <summary class="advanced-toggle">高级网关设置<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
+            <div class="gateway-two-columns">
+              <div class="gateway-field"><label class="field-label" for="local-request-mib">最大请求大小（MiB）</label><input id="local-request-mib" type="number" min="0.00000095367431640625" max="4" step="any" required class="text-input"></div>
+              <div class="gateway-field"><label class="field-label" for="local-concurrency">并发上限</label><input id="local-concurrency" type="number" min="1" max="128" required class="text-input"></div>
+            </div>
+            <div class="gateway-field"><label class="field-label" for="local-management-port">连接端口</label><input id="local-management-port" type="number" min="1024" max="65535" required class="text-input"></div>
+            <p class="field-help">须与数据端口不同。网关只接受本机连接。</p>
+          </details>
+          <p class="field-help">运行中可保存设置，新请求使用新配置，进行中的请求继续完成。端口变更后 Lumi 会自动重新连接；新端口被占用时保留原配置。</p>
+          <p id="local-draft-status" class="field-help" aria-live="polite"></p>
+          <div class="gateway-actions"><button type="button" data-submit="local-form" class="button primary">保存网关设置</button><button id="local-cancel" type="button" class="button default">取消编辑</button></div>
+        </form>
+        </details>
+      </section>
+      <section id="provider-editor-home" hidden>
+            <details id="route-settings-details" class="gateway-provider-content">
+              <summary id="route-settings-summary" class="advanced-toggle">编辑所选路由与认证<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
+              <form id="route-form" class="gateway-form">
+              <h3 id="route-form-heading">供应商编辑</h3>
+              <div class="gateway-field" data-v2 hidden><label class="field-label" for="route-name">供应商名称</label><input id="route-name" maxlength="100" class="text-input" placeholder="例如：我的 OpenAI 接口" data-provider-control></div>
+<div class="gateway-field"><label class="field-label" for="route-upstream">上游 base URL</label><input id="route-upstream" type="url" maxlength="2048" placeholder="https://api.example.com/v1" required class="text-input"></div>
+
+              <div class="gateway-field"><label class="field-label" for="route-upstream-key">上游 API key</label><input id="route-upstream-key" type="password" autocomplete="off" spellcheck="false" maxlength="8192" data-secret class="text-input"></div>
+              <section id="provider-model-editor" class="gateway-form" data-v2 hidden>
+                <div class="gateway-field"><label class="field-label" for="route-upstream-endpoint">上游推理接口</label><div class="select-wrap" data-decorated="false" data-tone="sage"><select id="route-upstream-endpoint" data-provider-control><option value="">按入口协议选择</option><option value="/v1/responses">OpenAI Responses</option><option value="/v1/chat/completions">OpenAI Chat Completions</option><option value="/v1/messages">Anthropic Messages</option></select></div></div>
+                <div id="route-upstream-preview" class="gateway-upstream-preview field-help" aria-live="polite"></div>
+                <p class="field-help">请按供应商支持的接口选择。模型目录可读取不代表支持 Responses；若仅支持 Chat，请明确选择 Chat Completions。Base URL 填 API 前缀，无需填写完整推理路径。</p>
+                <div class="section-heading"><div><h3>供应商下的模型</h3><p>共用上面的 API 地址、认证与上游协议。可从供应商目录自动获取，也可手动添加。</p></div><div class="gateway-actions"><button id="provider-model-fetch" type="button" class="button default">自动获取模型</button><button id="provider-model-add" type="button" class="button default" data-provider-control>手动添加</button></div></div>
+                <p id="provider-model-status" class="field-help model-status" role="status" aria-live="polite">先保存供应商的 API 与认证，再获取模型。</p>
+                <input id="route-models-config" type="hidden" value="[]">
+                <div id="provider-model-list" class="gateway-provider-models"></div>
+                <p class="field-help">对外模型名称供 Agent 使用；实际模型 ID 发给供应商。模型整流的匹配条件使用对外请求中的模型名称。“隐藏于概况”只影响图中显示，模型是否可用由“启用”控制。</p>
+              </section>
+              <details class="gateway-advanced"><summary class="advanced-toggle">高级接入设置</summary>
+              <div class="gateway-two-columns">
+                <div class="gateway-field"><label class="field-label" for="route-id">路由 ID</label><input id="route-id" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._\-]{0,63}" required class="text-input"></div>
+                <div class="gateway-field"><label class="field-label" for="route-client">客户端别名</label><input id="route-client" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._\-]{0,63}" required class="text-input"></div>
+              </div>
+              <div class="gateway-field">
+                <label class="field-label" for="route-protocol">协议</label>
+                <div class="select-wrap" data-decorated="false" data-tone="sage"><select id="route-protocol"><option value="openai">OpenAI 兼容</option><option value="anthropic">Anthropic Messages</option></select><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></div>
+              </div>
+<fieldset class="gateway-protocol-checks"><legend class="field-label">允许的对外接口</legend><label class="checkbox-label"><input id="route-entry-responses" type="checkbox" data-provider-control>Responses</label><label class="checkbox-label"><input id="route-entry-chat" type="checkbox" data-provider-control>Chat Completions</label><label class="checkbox-label"><input id="route-entry-messages" type="checkbox" data-provider-control>Messages</label></fieldset>
+              </details>
+              <p id="route-key-hint" class="field-help">新路由须输入两项认证；编辑时留空保持已保存的密钥。不会显示已保存内容。</p>
+              <div class="gateway-checks"><label class="checkbox-label"><input id="route-enabled" type="checkbox" checked>启用供应商</label><input id="route-tier" type="checkbox" checked hidden></div>
+              <p id="route-draft-status" class="field-help" aria-live="polite"></p>
+              <div class="gateway-actions"><button type="button" data-submit="route-form" data-session class="button primary">保存供应商</button><button id="route-cancel" type="button" class="button default">取消编辑</button><button id="route-delete" type="button" class="button danger" data-session>删除供应商</button></div>
+
+            </form>
+            </details>
+      </section>
+      <section id="tab-rectify" data-panel="rectify" hidden>
+        <div class="surface panel gateway-form">
+          <div class="section-heading"><div><h3>两段整流</h3><p>入口规则处理 Agent 发给 Lumi 的请求；模型规则在协议转换后、发送供应商前执行。</p></div><button id="rectifier-new" type="button" class="button primary" data-session>添加整流规则</button></div>
+          <div class="gateway-two-columns"><div class="gateway-field"><label class="field-label" for="rectifier-filter-stage">执行位置</label><div class="select-wrap" data-decorated="false" data-tone="sage"><select id="rectifier-filter-stage"><option value="">全部位置</option><option value="entry">Agent → Lumi</option><option value="model">供应商 → 模型</option></select></div></div><div class="gateway-field"><label class="field-label" for="rectifier-filter">搜索规则</label><input id="rectifier-filter" type="search" class="text-input" placeholder="按名称、字段、模型或供应商筛选"></div></div>
+          <div id="rectifier-list" class="gateway-workbench-list"></div>
+        </div>
+        <details id="rectifier-editor" class="surface panel gateway-advanced">
+          <summary class="advanced-toggle">整流规则编辑</summary>
+          <form id="rectifier-form" class="gateway-form">
+            <div class="gateway-two-columns"><div class="gateway-field"><label class="field-label" for="rectifier-id">规则 ID</label><input id="rectifier-id" class="text-input" maxlength="64" required pattern="[A-Za-z0-9][A-Za-z0-9._\-]{0,63}"></div><div class="gateway-field"><label class="field-label" for="rectifier-priority">优先级</label><input id="rectifier-priority" class="text-input" type="number" min="-2147483648" max="2147483647" value="0" required></div></div>
+            <div class="gateway-two-columns"><div class="gateway-field"><label class="field-label" for="rectifier-stage">执行位置</label><div class="select-wrap" data-decorated="false" data-tone="sage"><select id="rectifier-stage"><option value="entry">Agent → Lumi · 入口整流</option><option value="model">供应商 → 模型 · 上游整流</option></select></div></div><div class="gateway-field"><label class="field-label" for="rectifier-provider">供应商范围</label><div class="select-wrap" data-decorated="false" data-tone="sage"><select id="rectifier-provider"><option value="">全部供应商</option></select></div></div></div>
+            <div class="gateway-two-columns"><div class="gateway-field"><label class="field-label" for="rectifier-agent">Agent ID</label><input id="rectifier-agent" maxlength="64" class="text-input" placeholder="留空匹配全部"></div><div class="gateway-field"><label class="field-label" for="rectifier-model">请求模型名称</label><input id="rectifier-model" maxlength="256" class="text-input" placeholder="留空匹配全部"></div></div>
+            <div class="gateway-two-columns"><div class="gateway-field"><label class="field-label" for="rectifier-endpoint">接口范围</label><div class="select-wrap" data-decorated="false" data-tone="sage"><select id="rectifier-endpoint"><option value="">全部接口</option><option value="/v1/responses">Responses</option><option value="/v1/chat/completions">Chat Completions</option><option value="/v1/messages">Messages</option></select></div></div><div class="gateway-field"><label class="field-label" for="rectifier-field">处理字段</label><div class="select-wrap" data-decorated="false" data-tone="sage"><select id="rectifier-field"></select></div></div></div>
+            <p class="field-help">入口整流匹配 Agent 的接口；上游整流匹配实际发送接口。同阶段、同字段按优先级、匹配范围具体程度和保存顺序裁定；不同字段依次执行。</p>
+            <div class="gateway-field"><label class="field-label" for="rectifier-action">处理方式</label><div class="select-wrap" data-decorated="false" data-tone="sage"><select id="rectifier-action"><option value="preserve">保留</option><option value="remove">删除</option><option value="set-if-missing">缺失时补入（null 保留）</option><option value="override">强制覆盖</option><option value="map">按值映射</option><option value="clamp">限制数值范围</option><option value="reject">拒绝匹配请求</option></select></div></div>
+            <div id="rectifier-value-wrap" class="gateway-form" hidden><div class="gateway-field"><label class="field-label" for="rectifier-value-type">参数类型</label><div class="select-wrap" data-decorated="false" data-tone="sage"><select id="rectifier-value-type"><option value="string">文字</option><option value="number">数值</option><option value="boolean">布尔值</option><option value="null">null</option><option value="json">对象或数组（JSON）</option></select></div></div><div class="gateway-field"><label class="field-label" for="rectifier-value">参数值</label><textarea id="rectifier-value" class="text-input" rows="3" maxlength="4096"></textarea></div></div>
+            <div id="rectifier-map-wrap" class="gateway-field" hidden><label class="field-label" for="rectifier-map">映射表（JSON 对象）</label><textarea id="rectifier-map" class="text-input" rows="3" maxlength="4096" placeholder='{"priority":"auto","default":"standard_only"}'></textarea></div>
+            <div id="rectifier-clamp-wrap" class="gateway-two-columns" hidden><div class="gateway-field"><label class="field-label" for="rectifier-min">最小值</label><input id="rectifier-min" class="text-input" type="number" step="any"></div><div class="gateway-field"><label class="field-label" for="rectifier-max">最大值</label><input id="rectifier-max" class="text-input" type="number" step="any"></div></div>
+            <div id="rectifier-reject-wrap" class="gateway-field" hidden><label class="field-label" for="rectifier-reject">返回错误码</label><input id="rectifier-reject" class="text-input" maxlength="64" placeholder="agent-policy-rejected"></div>
+            <label class="checkbox-label"><input id="rectifier-enabled" type="checkbox" checked>启用规则</label><p id="rectifier-draft" class="field-help" role="status"></p>
+            <div class="gateway-actions"><button id="rectifier-save" type="button" class="button primary" data-session>保存整流规则</button><button id="rectifier-cancel" type="button" class="button default">取消编辑</button><button id="rectifier-delete" type="button" class="button danger" data-session>删除规则</button></div>
+          </form>
+        </details>
+        <details id="rectifier-preview-details" class="surface panel gateway-advanced">
+          <summary class="advanced-toggle">完整请求整流预览</summary>
+          <form id="rectifier-preview-form" class="gateway-form">
+            <div class="gateway-two-columns"><div class="gateway-field"><label class="field-label" for="rectifier-preview-provider">供应商</label><div class="select-wrap" data-decorated="false" data-tone="sage"><select id="rectifier-preview-provider"></select></div></div><div class="gateway-field"><label class="field-label" for="rectifier-preview-endpoint">Agent 接口</label><div class="select-wrap" data-decorated="false" data-tone="sage"><select id="rectifier-preview-endpoint"><option value="/v1/responses">Responses</option><option value="/v1/chat/completions">Chat Completions</option><option value="/v1/messages">Messages</option></select></div></div></div>
+            <div class="gateway-field"><label class="field-label" for="rectifier-preview-agent">Agent ID（可选）</label><input id="rectifier-preview-agent" class="text-input" maxlength="64"></div>
+            <div class="gateway-field"><label class="field-label" for="rectifier-preview-body">模拟请求（JSON）</label><textarea id="rectifier-preview-body" rows="6" class="text-input" maxlength="65536" placeholder='{"model":"模型名称","input":"测试内容"}'></textarea></div>
+            <p class="field-help">仅计算已保存配置；不连接模型、不发送推理请求。跨协议只转换支持的内容；会话引用、内置工具及不透明思考内容须使用原协议。</p>
+            <button id="rectifier-preview-run" type="button" class="button primary" data-session>计算整流结果</button>
+            <p id="rectifier-preview-status" class="field-help" role="status">尚未计算。</p><div id="rectifier-preview-result" class="gateway-preview-columns"></div>
+          </form>
+        </details>
+      </section>
+      <section id="tab-records" data-panel="records" hidden>
+        <div class="gateway-section">
+          <div class="section-heading">
+            <div><h3>请求记录</h3><p>请求原值、发送值与上游报回值独立展示；缺失观测保持未知。</p></div>
+            <button id="records-refresh" type="button" class="button default" data-session>刷新</button>
+          </div>
+          <form id="filter-form" class="surface panel gateway-filter">
+            <div class="gateway-field">
+              <label class="field-label" for="filter-route">路由</label>
+              <div class="select-wrap" data-decorated="false" data-tone="sage"><select id="filter-route" class="route-select" data-allow-all="true"><option value="">全部路由</option></select><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></div>
+            </div>
+            <div class="gateway-field"><label class="field-label" for="filter-model">模型</label><input id="filter-model" maxlength="200" placeholder="精确匹配" class="text-input"></div>
+            <div class="gateway-field">
+              <label class="field-label" for="filter-status">状态</label>
+              <div class="select-wrap" data-decorated="false" data-tone="sage"><select id="filter-status"><option value="">全部状态</option><option value="forwarding">进行中</option><option value="completed">已完成</option><option value="upstream-error">上游错误</option><option value="gateway-rejected">网关拒绝</option><option value="client-aborted">客户端取消</option><option value="interrupted">已中断</option><option value="execution-unknown">执行结果未知</option></select><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></div>
+            </div>
+            <div class="gateway-field"><label class="field-label" for="filter-tier">档位</label><input id="filter-tier" maxlength="64" placeholder="精确匹配" class="text-input"></div>
+            <div class="gateway-field"><label class="field-label" for="filter-from">起始时间</label><input id="filter-from" type="datetime-local" class="text-input"></div>
+            <div class="gateway-field"><label class="field-label" for="filter-to">结束时间</label><input id="filter-to" type="datetime-local" class="text-input"></div>
+            <div class="gateway-actions"><button type="button" data-submit="filter-form" data-session class="button primary">应用筛选</button><button id="filter-reset" type="button" class="button default" data-session>清空筛选</button></div>
+          </form>
+        </div>
+        <div id="records-update-note" class="info-note gateway-notice gateway-update-note" hidden><span id="records-update-message">有新请求，刷新后查看。</span><button id="records-update-apply" type="button" class="button default" data-session>显示最新记录</button></div>
+        <div class="gateway-toolbar">
+          <div class="gateway-record-counts"><span id="record-count">尚未读取记录</span><span id="record-selected-count" class="muted">未选择记录</span></div>
+          <div class="gateway-actions"><button id="record-export" type="button" class="button default" data-session disabled>导出选中</button><button id="record-delete" type="button" class="button danger" data-session disabled>删除选中</button></div>
+        </div>
+        <div class="surface panel">
+          <div class="table-scroll">
+            <table class="data-table gateway-table">
+              <thead>
+                <tr><th><input id="select-all" type="checkbox" aria-label="选择本页全部记录"></th><th>时间 / 模型</th><th>路由 / 状态</th><th>原值 → 发送 → 报回</th><th>Token / 耗时</th><th>详情</th></tr>
+              </thead>
+              <tbody id="records-body">
+                <tr><td colspan="6">连接后显示记录</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <button id="records-more" type="button" class="button default" data-session hidden>读取下一页</button>
+        <section id="record-detail" class="surface panel gateway-form" hidden aria-labelledby="detail-heading">
+          <div class="section-heading"><h3 id="detail-heading">请求详情</h3><button id="detail-close" type="button" class="button default">关闭详情</button></div>
+          <dl id="detail-summary" class="gateway-details"></dl>
+          <label class="checkbox-label"><input id="detail-body-toggle" type="checkbox">读取已录制的脱敏正文</label>
+          <p class="field-help">正文可能包含提示词、工具参数和回答。只有此前启用正文录制的请求才有正文。长流可能超过捕获上限；正文截断或录制不完整不代表转发内容被截断。</p>
+          <div id="detail-body-info" class="field-help"></div>
+          <pre id="detail-body" hidden class="current-config mono gateway-body"></pre>
+          <button id="detail-more" type="button" class="button default" hidden>读取下一段正文</button>
+        </section>
+      </section>
+      <section id="tab-settings" data-panel="settings" hidden>
+        <details id="listener-actions-details" class="gateway-stop-details gateway-advanced"><summary class="advanced-toggle">高级停止操作</summary>
+          <div class="section-heading">
+            <div><h3>客户端服务</h3><p id="listener-control-hint">读取状态后显示可用操作。</p></div>
+          </div>
+          <div class="gateway-actions"><button id="listener-start" type="button" disabled class="button primary">启动监听</button><button id="listener-restore-stop" type="button" class="button default" disabled>恢复入口并停止监听</button><button id="listener-stop" type="button" class="button default" disabled>等待完成并停止</button><button id="listener-cancel" type="button" class="button danger" disabled>取消请求并停止</button></div>
+          <p class="field-help">取消或断流不能证明上游未执行；可能产生 token 或费用。未恢复 CLI 入口时，停止监听可能使客户端无法请求。</p>
+        </details>
+        <div class="gateway-section">
+          <div class="section-heading">
+            <div><h3>客户端接入</h3><p>只修改网关入口和客户端认证；保留模型与本地 service_tier。</p></div>
+          </div>
+          <form id="cli-form" class="surface panel gateway-form">
+            <div class="gateway-two-columns">
+              <div class="gateway-field">
+                <label class="field-label" for="cli-tool">兼容工具</label>
+                <div class="select-wrap" data-decorated="false" data-tone="sage"><select id="cli-tool"><option value="codex">Codex</option><option value="claude-code">Claude Code</option></select><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></div>
+              </div>
+              <div class="gateway-field">
+                <label class="field-label" for="cli-route">目标路由</label>
+                <div class="select-wrap" data-decorated="false" data-tone="sage"><select id="cli-route" class="route-select" required></select><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></div>
+              </div>
+            </div>
+            <p id="cli-route-hint" class="field-help" aria-live="polite">选择工具后显示兼容路由。</p>
+            <p class="field-help">先检查差异，再应用。宿主会检查冲突、加密备份并原子写入；CLI 预览不显示密钥。Codex 仅支持可明确验证认证行为的显式 provider 配置；默认 provider 可能无法安全接管。</p>
+            <button type="button" data-submit="cli-form" data-session class="button primary">预览配置变更</button>
+            <div id="cli-preview" hidden>
+              <div class="section-heading"><div><h3>待应用差异</h3></div></div>
+              <p id="cli-expiry" class="field-help"></p>
+              <div id="cli-differences"></div>
+              <div id="cli-conflicts" class="warning-banner gateway-notice" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg><span></span></div>
+              <div class="gateway-actions"><button id="cli-apply" type="button" disabled class="button primary">应用已预览变更</button></div>
+            </div>
+            <div id="cli-recovery" class="surface panel gateway-recovery" hidden><p id="cli-recovery-description"></p><button id="cli-restore" type="button" class="button default">恢复此事务修改的配置</button></div>
+          </form>
+        </div>
+        <div class="gateway-section">
+          <div class="section-heading">
+            <div><h3>录制与保留策略</h3><p>数据只保存在本机专用记录库，不进入 Lumi 应用日志。</p></div>
+            <button id="recording-refresh" type="button" class="button default" data-session>重新读取</button>
+          </div>
+          <form id="recording-form" class="surface panel gateway-form">
+            <label class="checkbox-label"><input id="recording-bodies" type="checkbox">启用加密正文录制</label>
+            <div id="body-consent-panel" class="warning-banner gateway-consent" hidden><p>正文可能包含敏感信息。认证头与密钥不纳入录制，自动脱敏无法识别所有自然语言秘密。</p><label class="checkbox-label"><input id="recording-consent" type="checkbox">我了解记录内容，将在这台设备上保存正文</label></div>
+            <div class="gateway-two-columns">
+              <div class="gateway-field"><label class="field-label" for="recording-days">保留天数</label><input id="recording-days" type="number" min="1" max="365" required class="text-input"></div>
+              <div class="gateway-field"><label class="field-label" for="recording-count">最多记录数</label><input id="recording-count" type="number" min="1" max="100000" required class="text-input"></div>
+              <div class="gateway-field"><label class="field-label" for="recording-megabytes">记录容量上限（MiB）</label><input id="recording-megabytes" type="number" min="1" max="10240" required class="text-input"></div>
+              <div class="gateway-field"><label class="field-label" for="recording-kilobytes">单条捕获上限（KiB）</label><input id="recording-kilobytes" type="number" min="1" max="1024" required class="text-input"></div>
+            </div>
+            <p id="recording-security" class="field-help">连接后检查系统安全存储。</p>
+            <p id="recording-draft-status" class="field-help" aria-live="polite"></p>
+            <div class="gateway-actions"><button type="button" data-submit="recording-form" data-session class="button primary">保存录制设置</button><button id="recording-cancel" type="button" class="button default">取消编辑</button></div>
+          </form>
+        </div>
+      </section>
+      <footer class="page-footer"><span>本地路由 · 真实观测 · 默认仅记录元数据</span></footer>
+    </main>
+    <dialog id="local-settings-dialog" class="modal surface gateway-dialog gateway-local-dialog" aria-labelledby="local-dialog-title">
+      <div class="modal-heading"><div><h2 id="local-dialog-title">网关设置</h2><p id="local-dialog-description" class="field-help">设置网关名称、端口与请求限制。</p></div><button id="local-dialog-close" type="button" class="button default" aria-label="关闭网关设置">关闭</button></div>
+      <p id="local-dialog-notice" class="field-help" role="status" hidden></p>
+      <div id="local-dialog-body" class="gateway-dialog-body"></div>
+    </dialog>
+    <dialog id="provider-editor-dialog" class="modal surface gateway-dialog gateway-provider-dialog" aria-labelledby="provider-dialog-title">
+      <div class="modal-heading"><div><h2 id="provider-dialog-title">编辑供应商</h2><p class="field-help">管理共用 API 的模型与概况显示。</p></div><button id="provider-dialog-close" type="button" class="button default" aria-label="关闭供应商编辑">关闭</button></div>
+      <p id="provider-dialog-notice" class="field-help" role="status" hidden></p>
+      <div id="provider-dialog-body" class="gateway-dialog-body"></div>
+    </dialog>
+    <dialog id="chain-model-picker-dialog" class="modal surface gateway-dialog" aria-labelledby="chain-model-picker-heading">
+      <div class="modal-heading"><div><h2 id="chain-model-picker-heading">添加模型</h2></div></div>
+      <label class="field-label" for="chain-model-provider">选择供应商</label><div class="select-wrap" data-decorated="false" data-tone="sage"><select id="chain-model-provider"></select></div>
+      <p class="field-help">自动读取所选供应商的模型目录，将新模型加入待保存列表；已有别名与显示设置保留。</p>
+      <div class="modal-actions gateway-actions"><button id="chain-model-picker-confirm" type="button" class="button primary">继续</button><button id="chain-model-picker-cancel" type="button" class="button default">取消</button></div>
+    </dialog>
+    <dialog id="delete-dialog" class="modal surface gateway-dialog" aria-labelledby="delete-heading">
+      <div class="modal-heading">
+        <div><h2 id="delete-heading">删除选中记录？</h2></div>
+      </div>
+      <p id="delete-description"></p>
+      <p class="field-help">删除会阻止在途记录重新写回。此操作不能撤销，也不承诺物理擦除 SSD。</p>
+      <div class="modal-actions gateway-actions"><button id="delete-cancel" type="button" class="button default">保留记录</button><button id="delete-confirm" type="button" class="button danger">确认删除</button></div>
+    </dialog>
+    <dialog id="route-delete-dialog" class="modal surface gateway-dialog" aria-labelledby="route-delete-heading">
+      <div class="modal-heading">
+        <div><h2 id="route-delete-heading">删除此路由？</h2></div>
+      </div>
+      <p id="route-delete-description"></p>
+      <p class="field-help">此路由将不再接受请求，其认证会一并删除。先处理引用它的规则与 CLI 配置。</p>
+      <div class="modal-actions gateway-actions"><button id="route-delete-abort" type="button" class="button default">保留路由</button><button id="route-delete-confirm" type="button" class="button danger">确认删除</button></div>
+    </dialog>
+    <dialog id="listener-stop-dialog" class="modal surface gateway-dialog" aria-labelledby="listener-stop-heading">
+      <div class="modal-heading">
+        <div><h2 id="listener-stop-heading">停止数据监听？</h2></div>
+      </div>
+      <p id="listener-stop-description"></p>
+      <p class="field-help">若 CLI 仍指向本机网关入口，停止后客户端可能无法请求。可取消并选择“恢复入口并停止监听”。</p>
+      <div class="modal-actions gateway-actions"><button id="listener-stop-abort" type="button" class="button default">保留监听</button><button id="listener-stop-confirm" type="button" class="button danger">确认停止</button></div>
+    </dialog>
+    <dialog id="workbench-delete-dialog" class="surface panel gateway-dialog"><h3>确认删除</h3><p id="workbench-delete-text" class="field-help"></p><div class="gateway-actions"><button id="workbench-delete-confirm" type="button" class="button danger">确认删除</button><button id="workbench-delete-cancel" type="button" class="button default">取消</button></div></dialog>
+  </body>
+</html>
