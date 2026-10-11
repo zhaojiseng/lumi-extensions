@@ -8,7 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest=JSON.parse(await fs.readFile(path.join(source,'package-stage/plugin.json'),'utf8'));
-if(manifest.id!=='extension.lumi.gateway'||manifest.name!=='模型网关'||manifest.version!=='1.0.0'||manifest.contributions.length!==2||manifest.contributions.some(view=>view.title!=='模型网关'))throw new Error('The model gateway manifest name/version/view identity is inconsistent.');
+if(manifest.id!=='extension.lumi.gateway'||manifest.name!=='模型网关'||manifest.version!=='1.0.1'||manifest.contributions.length!==2||manifest.contributions.some(view=>view.title!=='模型网关'))throw new Error('The model gateway manifest name/version/view identity is inconsistent.');
 const noProcessSandbox = process.argv.includes('--no-process-sandbox');
 const noGpuSandbox = process.argv.includes('--disable-gpu-sandbox');
 const browser = process.argv.slice(2).find(value => !value.startsWith('--')) || 'C:/Program Files/Google/Chrome/Application/chrome.exe';

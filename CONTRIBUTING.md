@@ -2,7 +2,7 @@
 
 官方维护的插件放在 `plugins/<插件ID>/`。第三方作者可在自己的仓库独立发布，无需将所有插件集中到此仓库。
 
-开发工程、当前安装包与交付副本的职责见 [目录结构与维护入口](docs/DIRECTORY_STRUCTURE.md)。网关页面在 `sources/extension.lumi.gateway/package-stage/` 修改并验证，再同步到 `plugins/extension.lumi.gateway/`；不要两处分别修改。模型网关 1.0.0 要求 Lumi 1.0.0 或更新宿主；使用 `host.json` 固定的官方校验器，并在匹配主程序上执行真实界面回归。
+开发工程、当前安装包与交付副本的职责见 [目录结构与维护入口](docs/DIRECTORY_STRUCTURE.md)。网关页面在 `sources/extension.lumi.gateway/package-stage/` 修改并验证，再同步到 `plugins/extension.lumi.gateway/`；不要两处分别修改。模型网关 1.0.1 要求 Lumi 1.0.1 或更新宿主；使用 `host.json` 固定的官方校验器，并在匹配主程序上执行真实界面回归。
 
 1. 使用稳定的 `extension.<作者>.<名称>` ID，目录名称与 ID 一致。
 2. 提供 `plugin.json`、自包含运行资源、完整 `LICENSE` 和安装/功能说明。

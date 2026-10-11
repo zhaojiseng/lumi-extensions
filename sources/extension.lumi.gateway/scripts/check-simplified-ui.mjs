@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest=JSON.parse(await fs.readFile(path.join(source,'package-stage/plugin.json'),'utf8'));
-if(manifest.id!=='extension.lumi.gateway'||manifest.name!=='模型网关'||manifest.version!=='1.0.0'||manifest.contributions.length!==2||manifest.contributions.some(view=>view.title!=='模型网关'))throw new Error('The model gateway manifest name/version/view identity is inconsistent.');
+if(manifest.id!=='extension.lumi.gateway'||manifest.name!=='模型网关'||manifest.version!=='1.0.1'||manifest.contributions.length!==2||manifest.contributions.some(view=>view.title!=='模型网关'))throw new Error('The model gateway manifest name/version/view identity is inconsistent.');
 const noProcessSandbox = process.argv.includes('--no-process-sandbox');
 const hostArgument = process.argv.slice(2).find(value => !value.startsWith('--'));
 const host = path.resolve(hostArgument || path.join(root, '..', 'main'));

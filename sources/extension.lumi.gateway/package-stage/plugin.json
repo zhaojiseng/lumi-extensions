@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "extension.lumi.gateway",
   "name": "模型网关",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "hostApiVersion": 1,
   "description": "在 Lumi 中管理供应商与模型、统一客户端接入、两段请求整流、多协议转换及本地请求记录。",
   "author": "Lumi contributors",
@@ -33,5 +33,5 @@
       "order": 240
     }
   ],
-  "minHostVersion": "1.0.0"
+  "minHostVersion": "1.0.1"
 }

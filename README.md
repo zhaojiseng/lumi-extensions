@@ -8,7 +8,7 @@ Lumi 官方维护的独立功能插件和界面插件。每个插件独立版本
 | --- | --- | --- | --- | --- |
 | [工作台便笺](plugins/extension.lumi.notes) | 功能 | 工作台、侧栏和设置中的便笺 | storage | Lumi 0.5.1 / API v1 |
 | [Codex 对话](plugins/extension.lumi.codex) | 功能 | 经宿主默认桥接与本机 `codex app-server` 对话，复用当前皮肤：流式回复、命令执行、diff、计划、审批与会话历史 | codex.bridge | Lumi 0.5.19 / API v1 |
-| [模型网关](plugins/extension.lumi.gateway) | 功能 | 统一接入、供应商与模型、两段整流、多协议转换及本地请求记录 | gateway.* 五项权限、storage | Lumi 1.0.0 / API v1 |
+| [模型网关](plugins/extension.lumi.gateway) | 功能 | 统一接入、供应商与模型、两段整流、多协议转换及本地请求记录 | gateway.* 五项权限、storage | Lumi 1.0.1 / API v1 |
 | [紧凑界面](plugins/extension.lumi.compact) | 界面 | 紧凑侧栏、间距与强调色 | 无 | Lumi 0.5.1 / API v1 |
 | [浮梦 · 梦幻界面](plugins/extension.author.dreamy) | 界面 | 可配置液态玻璃、同步弹窗虚化与圆角框架 | 无 | Lumi 0.5.13 / API v1 |
 
@@ -18,7 +18,7 @@ Lumi 官方维护的独立功能插件和界面插件。每个插件独立版本
 | --- | --- | --- |
 | `sources/` | 开发工程、测试与开发说明 | 页面在 `sources/extension.lumi.gateway/package-stage/` 修改 |
 | `plugins/` | 当前可直接安装的插件目录包 | `plugins/extension.lumi.gateway/`，从页面源目录同步七个文件 |
-| `release/` | 按版本或日期保存的交付副本、ZIP 与校验文件，Git 忽略 | 正式发布包为 `release/extension.lumi.gateway-v1.0.0.zip` |
+| `release/` | 按版本或日期保存的交付副本、ZIP 与校验文件，Git 忽略 | 正式发布包为 `release/extension.lumi.gateway-v1.0.1.zip` |
 | `.cache/` | 固定宿主、编译缓存、隔离测试结果与截图，Git 忽略 | 不作为安装目录或开发入口 |
 
 网关页面的维护顺序是 `sources/.../package-stage → plugins/extension.lumi.gateway → release/<交付批次>`。只在页面源目录修改，再验证、同步；安装时复制 `plugins` 中整个同 ID 文件夹。`release` 中已有交付副本保留原样。其他没有独立开发工程的插件直接在自己的 `plugins/<ID>/` 中维护。
@@ -45,13 +45,13 @@ npm run check
 npm run check -- plugins/extension.lumi.notes
 ```
 
-`host.json` 固定 Lumi v1.0.0 的完整提交 SHA。准备命令只在忽略的 `.cache/` 下获取宿主源码和校验依赖，不下载或启动 Electron；校验直接复用该版本宿主的官方规则。SDK 类型在 `sdk/lumi-extension.d.ts`，运行时 `lumi-sdk.js` 由 Lumi 提供。
+`host.json` 固定 Lumi v1.0.1 的完整提交 SHA。准备命令只在忽略的 `.cache/` 下获取宿主源码和校验依赖，不下载或启动 Electron；校验直接复用该版本宿主的官方规则。SDK 类型在 `sdk/lumi-extension.d.ts`，运行时 `lumi-sdk.js` 由 Lumi 提供。
 
-模型网关 1.0.0 的最低宿主为 Lumi 1.0.0；API 版本仍为 1。`npm run check` 使用固定官方宿主校验全部插件，真实网关界面与运行时还需单独执行回归，具体命令见 [目录说明](docs/DIRECTORY_STRUCTURE.md)。
+模型网关 1.0.1 的最低宿主为 Lumi 1.0.1；API 版本仍为 1。`npm run check` 使用固定官方宿主校验全部插件，真实网关界面与运行时还需单独执行回归，具体命令见 [目录说明](docs/DIRECTORY_STRUCTURE.md)。
 
 `plugins/` 只保存可直接安装的目录包。需要 React/TypeScript 构建的插件可把开发工程放到 `sources/<插件ID>/`，将自包含 web 资源输出到对应 `plugins/<插件ID>/`。不要将依赖树、缓存、密钥或用户数据放入插件包。
 
-完整外部接口及沙箱边界见 [Lumi v1.0.0 插件开发指南](https://github.com/zhaojiseng/lumi/blob/v1.0.0/docs/PLUGIN_DEVELOPMENT.md)。外部插件不能自行注册主进程能力或访问任意文件系统；Codex、网关等能力只通过宿主已实现且经过权限校验的固定接口提供。界面插件只提供受校验的 CSS。
+完整外部接口及沙箱边界见 [Lumi v1.0.1 插件开发指南](https://github.com/zhaojiseng/lumi/blob/v1.0.1/docs/PLUGIN_DEVELOPMENT.md)。外部插件不能自行注册主进程能力或访问任意文件系统；Codex、网关等能力只通过宿主已实现且经过权限校验的固定接口提供。界面插件只提供受校验的 CSS。
 
 ## 独立发布
 

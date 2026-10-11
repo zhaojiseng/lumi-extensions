@@ -20,7 +20,7 @@ for(const file of [electron,path.join(host,'dist-electron/preload.cjs'),path.joi
 const outputRoot=path.join(repository,'.cache/gateway-plugin-ui');await fs.mkdir(outputRoot,{recursive:true});
 const directory=await fs.mkdtemp(path.join(outputRoot,'real-electron-'));
 const manifest=JSON.parse(await fs.readFile(path.join(source,'package-stage/plugin.json'),'utf8'));
-if(manifest.id!=='extension.lumi.gateway'||manifest.name!=='模型网关'||manifest.version!=='1.0.0'||manifest.contributions.length!==2||manifest.contributions.some(view=>view.title!=='模型网关'))throw new Error('The model gateway manifest name/version/view identity is inconsistent.');
+if(manifest.id!=='extension.lumi.gateway'||manifest.name!=='模型网关'||manifest.version!=='1.0.1'||manifest.contributions.length!==2||manifest.contributions.some(view=>view.title!=='模型网关'))throw new Error('The model gateway manifest name/version/view identity is inconsistent.');
 const pluginDirectory=path.join(directory,'packages',manifest.id);await fs.mkdir(pluginDirectory,{recursive:true});
 for(const file of await fs.readdir(path.join(source,'package-stage')))await fs.copyFile(path.join(source,'package-stage',file),path.join(pluginDirectory,file));
 const mainContents=await fs.readFile(path.join(source,'tests/real-electron-main.ts'),'utf8');

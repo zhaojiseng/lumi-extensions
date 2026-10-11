@@ -1,6 +1,6 @@
 # 目录结构与维护入口
 
-本说明区分源码、当前安装包和历史交付副本。当前模型网关为 `1.0.0`，最低宿主为 Lumi `1.0.0`。
+本说明区分源码、当前安装包和历史交付副本。当前模型网关为 `1.0.1`，最低宿主为 Lumi `1.0.1`。
 
 ## 两个独立仓库
 
@@ -95,14 +95,14 @@ release/<交付批次> 或 release/<插件ID>-v<版本>.zip
 
 ## 校验与打包入口
 
-全部插件使用 `host.json` 固定的 Lumi v1.0.0 官方校验器，例如在插件仓库运行：
+全部插件使用 `host.json` 固定的 Lumi v1.0.1 官方校验器，例如在插件仓库运行：
 
 ```powershell
 npm.cmd run setup:host
 npm.cmd run check -- plugins/extension.lumi.notes
 ```
 
-模型网关声明五项 `gateway.*` 权限和 `storage`，最低宿主为 Lumi 1.0.0。默认 `npm.cmd run check` 校验全部安装目录包，也可在匹配主程序仓库直接调用同一官方校验器：
+模型网关声明五项 `gateway.*` 权限和 `storage`，最低宿主为 Lumi 1.0.1。默认 `npm.cmd run check` 校验全部安装目录包，也可在匹配主程序仓库直接调用同一官方校验器：
 
 ```powershell
 Set-Location E:\workspace\lumi\main
