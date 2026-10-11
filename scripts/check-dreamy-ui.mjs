@@ -1,7 +1,8 @@
 import {mkdir,mkdtemp,readFile,writeFile,rm} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {createRequire} from 'node:module';
-import {spawn} from 'node:child_process';
+import {spawn,execFile} from 'node:child_process';
+import {promisify} from 'node:util';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -11,9 +12,16 @@ const root=fileURLToPath(new URL('../',import.meta.url)),host=process.argv[2] &&
 if(!host || !existsSync(path.join(host,'src/components/ui.tsx')))throw new Error('用法：npm run check:dreamy-ui -- <Lumi 源码目录>；宿主需已安装依赖和 Electron。');
 const requireHost=createRequire(path.join(host,'package.json')),{build}=requireHost('esbuild'),electron=requireHost('electron');
 if(!existsSync(electron))throw new Error('宿主 Electron 尚未准备，请先在宿主运行 npm run setup:electron。');
-const themeCss=await readFile(path.join(root,'plugins/extension.author.dreamy/interface.css'),'utf8');
-const manifest=JSON.parse(await readFile(path.join(root,'plugins/extension.author.dreamy/plugin.json'),'utf8')),hostManifest=JSON.parse(await readFile(path.join(host,'package.json'),'utf8'));
-const output=path.join(root,'.cache/dreamy-ui');await mkdir(output,{recursive:true});
+const baseline=process.argv.includes('--baseline'),execFileAsync=promisify(execFile);
+const readThemeFile=async name=>{
+  const relative='plugins/extension.author.dreamy/'+name;
+  if(!baseline)return readFile(path.join(root,relative),'utf8');
+  const {stdout}=await execFileAsync('git',['show','HEAD:'+relative],{cwd:root,encoding:'utf8',windowsHide:true,maxBuffer:10*1024*1024});
+  return stdout;
+};
+const [themeCss,manifestJson,hostManifestJson]=await Promise.all([readThemeFile('interface.css'),readThemeFile('plugin.json'),readFile(path.join(host,'package.json'),'utf8')]);
+const manifest=JSON.parse(manifestJson),hostManifest=JSON.parse(hostManifestJson);
+const output=path.join(root,baseline ? '.cache/dreamy-ui-baseline' : '.cache/dreamy-ui');await mkdir(output,{recursive:true});
 const fixture=await mkdtemp(path.join(output,'fixture-'));
 const fixtureRelative=path.relative(output,fixture);
 if(!fixtureRelative || fixtureRelative.startsWith('..') || path.isAbsolute(fixtureRelative))throw new Error('临时夹具目录必须位于检查输出目录内。');
@@ -42,7 +50,7 @@ createRoot(document.getElementById('root')).render(<App/>);
   const css=await Promise.all(styleFiles.map(file=>readFile(path.join(host,'src',file),'utf8')));
   await writeFile(path.join(fixture,'style.css'),css.join('\n')+'\n.fixture-model-glass{display:none}html[data-fixture-model-glass] .fixture-model-glass{display:block;width:360px;margin:24px}.fixture-materials{display:none}html[data-fixture-materials] .fixture-materials{display:grid;gap:16px}html[data-fixture-materials] .fixture-cards,html[data-fixture-materials] #checker{display:none}html[data-fixture-materials] .fixture-materials>.select-wrap{width:260px}.fixture-actions{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}.fixture-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.fixture-cards p{font-size:13px;line-height:1.6}#checker{position:fixed;left:270px;top:100px;width:100px;height:80px;background:repeating-linear-gradient(90deg,#111 0 4px,#fafafa 4px 8px);pointer-events:none}.fixture-narrow{display:none}html[data-fixture-narrow] body{min-width:0}html[data-fixture-narrow] .fixture-narrow{display:block;position:fixed;left:8px;top:8px;z-index:80}html[data-fixture-narrow] .desktop-shell>:is(.titlebar,.sidebar,.main-area){visibility:hidden}');
   await writeFile(path.join(fixture,'index.html'),'<html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"></head><body><div id="root"></div><script type="module" src="app.js"></script></body></html>');
-  const configuration={output,version:manifest.version,hostVersion:hostManifest.version,narrowOnly:process.argv.includes('--narrow-only'),motionOnly:process.argv.includes('--motion-only'),pixelsOnly:process.argv.includes('--pixels-only'),hardware:process.argv.includes('--hardware'),materialsOnly:process.argv.includes('--materials-only'),refractionOnly:process.argv.includes('--refraction-only')};
+  const configuration={output,baseline,version:manifest.version,hostVersion:hostManifest.version,narrowOnly:process.argv.includes('--narrow-only'),motionOnly:process.argv.includes('--motion-only'),pixelsOnly:process.argv.includes('--pixels-only'),hardware:process.argv.includes('--hardware'),materialsOnly:process.argv.includes('--materials-only'),refractionOnly:process.argv.includes('--refraction-only'),accessibilityOnly:process.argv.includes('--accessibility-only')};
   await writeFile(path.join(fixture,'main.cjs'),String.raw`
 const {app,BrowserWindow}=require('electron'),fs=require('node:fs'),path=require('node:path');
 const config=JSON.parse(process.argv[2]);
@@ -57,9 +65,9 @@ const measure=async()=>{const data=(await win.webContents.capturePage({x:280,y:1
 const check=async(fn,...args)=>run(fn,...args);
 const paint=async()=>{const frames=()=>run(async()=>{await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Pixel frame did not paint within 6000ms')),6000);requestAnimationFrame(()=>requestAnimationFrame(()=>{clearTimeout(timeout);resolve();}));});});await frames();await win.webContents.capturePage(undefined,{stayHidden:true,stayAwake:true});await frames();};
 await ready();const results=[],narrowResults=[],motionResults=[],pixelResults=[];
-const materialResults=[];
+const materialResults=[],accessibilityResults=[];
 
-if(!config.narrowOnly && !config.materialsOnly && !config.refractionOnly){
+if(!config.narrowOnly && !config.materialsOnly && !config.refractionOnly && !config.accessibilityOnly){
 await win.webContents.debugger.attach('1.3');await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});win.webContents.debugger.detach();
 for(const mode of ['light','dark']){
 await win.loadFile(path.join(__dirname,'index.html'));await ready();
@@ -97,7 +105,7 @@ await run(async opening=>{fixture.pixelPhase.animations.forEach(a=>a.finish());i
 await run(()=>fixture.motionChecks=false);
 }
 }
-if(!config.narrowOnly && !config.pixelsOnly && !config.materialsOnly && !config.refractionOnly){
+if(!config.narrowOnly && !config.pixelsOnly && !config.materialsOnly && !config.refractionOnly && !config.accessibilityOnly){
 for(const mode of ['light','dark'])for(const custom of [false,true]){
 const probe=await run(async(mode,custom)=>{
  const until=async fn=>{const end=performance.now()+6000;while(!fn()){if(performance.now()>end)throw new Error('Motion state did not settle '+fn);await new Promise(r=>setTimeout(r,10));}};
@@ -128,7 +136,7 @@ const probe=await run(async(mode,custom)=>{
 },mode,custom);motionResults.push(probe);console.log('DREAMY_MOTION '+JSON.stringify(probe));
 }
 }
-for(const mode of config.narrowOnly || config.motionOnly || config.pixelsOnly || config.materialsOnly || config.refractionOnly ? [] : ['light','dark'])for(const reduce of [false,true]){
+for(const mode of config.narrowOnly || config.motionOnly || config.pixelsOnly || config.materialsOnly || config.refractionOnly || config.accessibilityOnly ? [] : ['light','dark'])for(const reduce of [false,true]){
 await win.webContents.debugger.attach('1.3');await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:reduce ? 'reduce' : 'no-preference'}]});win.webContents.debugger.detach();
 await run((mode)=>{fixture.setTheme(mode,false);document.querySelector('.fixture-actions button').click();},mode);await settle();const baseline=await measure();
 await run(mode=>fixture.setTheme(mode,true),mode);await settle();const blurred=await measure();
@@ -156,7 +164,7 @@ await check(()=>{if(document.querySelector('.multi-popover') || fixture.errors.l
 }
 await win.webContents.debugger.attach('1.3');await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});win.webContents.debugger.detach();
 win.setContentSize(320,240);
-for(const mode of config.motionOnly || config.pixelsOnly || config.materialsOnly || config.refractionOnly ? [] : ['light','dark']){
+for(const mode of config.motionOnly || config.pixelsOnly || config.materialsOnly || config.refractionOnly || config.accessibilityOnly ? [] : ['light','dark']){
 await run(mode=>{document.documentElement.dataset.fixtureNarrow='true';fixture.setTheme(mode,true);},mode);await settle();
 await run(()=>document.querySelector('.fixture-narrow .multi-trigger').click());await settle();
 const measurements=await check(()=>{const p=document.querySelector('.multi-popover'),s=p.querySelector('.search-input'),i=s.querySelector('input'),f=p.querySelector('.multi-actions'),b=f.querySelector('.button.primary'),list=p.querySelector('.multi-options'),r=p.getBoundingClientRect(),sr=s.getBoundingClientRect(),ir=i.getBoundingClientRect(),fr=f.getBoundingClientRect(),br=b.getBoundingClientRect();if(Math.abs(innerWidth-320)>2 || Math.abs(innerHeight-240)>2)throw new Error('Unexpected narrow viewport '+JSON.stringify({width:innerWidth,height:innerHeight}));if(r.left<7 || r.top<7 || r.right>innerWidth-7 || r.bottom>innerHeight-7)throw new Error('Narrow popover outside viewport '+JSON.stringify(r));if(Math.abs(sr.height-34)>.5 || ir.left<sr.left || ir.right>sr.right || ir.top<sr.top || ir.bottom>sr.bottom)throw new Error('Narrow search shrank or input overflowed '+JSON.stringify({search:sr,input:ir}));if(!s.matches(':focus-within') || getComputedStyle(i).outlineStyle!=='none' || !getComputedStyle(s).boxShadow.includes('0px 0px 0px 2px') || parseFloat(getComputedStyle(s).borderRadius)<8)throw new Error('Narrow search lost rounded focus '+JSON.stringify({focused:s.matches(':focus-within'),outline:getComputedStyle(i).outlineStyle,shadow:getComputedStyle(s).boxShadow,radius:getComputedStyle(s).borderRadius}));if(fr.top<sr.bottom || fr.bottom>r.bottom || br.bottom>innerHeight-8 || !br.height || list.scrollHeight<=list.clientHeight)throw new Error('Narrow footer hidden or list cannot scroll '+JSON.stringify({panel:r,footer:fr,apply:br,clientHeight:list.clientHeight,scrollHeight:list.scrollHeight}));return {width:innerWidth,height:innerHeight,searchHeight:sr.height,footerBottom:br.bottom,optionsHeight:list.clientHeight};});await capture('dreamy-popover-narrow-'+mode);narrowResults.push({mode,...measurements});
@@ -167,7 +175,7 @@ await check(()=>{if(document.querySelector('.multi-popover') || !document.queryS
 }
 await run(()=>delete document.documentElement.dataset.fixtureNarrow);win.setContentSize(1280,900);
 await check(()=>{if(fixture.errors.length)throw new Error('Renderer errors '+fixture.errors);});
-if(!config.narrowOnly && !config.motionOnly && !config.pixelsOnly && !config.refractionOnly){
+if(!config.narrowOnly && !config.motionOnly && !config.pixelsOnly && !config.refractionOnly && !config.accessibilityOnly){
 for(const mode of ['light','dark']){
 // Load a fresh scene so prior popup focus, native pickers and measured hidden sliders
 // cannot carry state into material checks.
@@ -191,34 +199,102 @@ await run(()=>{document.querySelector('.fixture-materials .model-mode-selector b
 console.log('DREAMY_MATERIALS '+JSON.stringify(materialResults));
 }
 
+if(!config.narrowOnly && !config.motionOnly && !config.pixelsOnly && !config.materialsOnly && !config.refractionOnly){
+const inspectReducedGlass=async(label,targets)=>check((label,targets)=>{
+ const samples=[],hasOptics=value=>/url\s*\(/i.test(value) || [...value.matchAll(/blur\(([^)]*)\)/g)].some(match=>parseFloat(match[1])!==0);
+ for(const [selector,pseudos] of targets){
+  const nodes=[...document.querySelectorAll(selector)];if(!nodes.length)throw Error('Missing accessibility target '+selector);
+  for(const node of nodes)for(const pseudo of pseudos){
+   const style=getComputedStyle(node,pseudo);
+   if(hasOptics(style.backdropFilter) || hasOptics(style.filter))throw Error('Accessibility mode retains glass '+JSON.stringify({label,selector,pseudo,backdrop:style.backdropFilter,filter:style.filter}));
+   samples.push({selector,pseudo,backdrop:style.backdropFilter,filter:style.filter});
+  }
+ }
+ if(document.querySelector('[data-lumi-glass-defs] filter'))throw Error('Accessibility mode retains displacement maps '+label);
+ return {label,samples};
+},label,targets);
+const escape=()=>{win.webContents.sendInputEvent({type:'keyDown',keyCode:'Escape'});win.webContents.sendInputEvent({type:'keyUp',keyCode:'Escape'});};
+const waitForPopupCleanup=()=>check(async()=>{
+ const deadline=performance.now()+6000;
+ while(document.querySelector('.modal-overlay,.multi-popover') || [...document.querySelectorAll('select')].some(select=>select.matches(':open'))){
+  if(performance.now()>deadline)throw Error('Accessibility popup did not finish closing');
+  await new Promise(resolve=>setTimeout(resolve,20));
+ }
+ if(document.querySelector('[data-lumi-glass-defs] filter'))throw Error('Closed accessibility popup leaked displacement maps');
+ if(fixture.errors.length)throw Error('Accessibility renderer errors '+fixture.errors);
+ return {popups:0,openPickers:0,displacementMaps:0};
+});
+await win.webContents.debugger.attach('1.3');
+for(const mode of ['light','dark'])for(const feature of ['reduced-transparency','forced-colors']){
+ await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'},{name:'prefers-reduced-transparency',value:feature==='reduced-transparency' ? 'reduce' : 'no-preference'},{name:'forced-colors',value:feature==='forced-colors' ? 'active' : 'none'}]});
+ await win.loadFile(path.join(__dirname,'index.html'));await ready();
+ await run((mode,feature)=>{
+  fixture.setTheme(mode,true);const shell=document.querySelector('.desktop-shell');
+  shell.dataset.appearanceTransparency='clear';shell.dataset.appearanceBlur='strong';shell.dataset.appearanceDistortion='strong';
+  const query=feature==='reduced-transparency' ? '(prefers-reduced-transparency: reduce)' : '(forced-colors: active)';
+  if(!matchMedia(query).matches)throw Error('Accessibility media emulation did not apply '+query);
+  document.querySelector('.fixture-actions button').focus();document.querySelector('.fixture-actions button').click();
+ },mode,feature);await settle();
+ const samples=[await inspectReducedGlass('modal',[
+  ['.modal-overlay',[null,'::before']],
+  ['.modal',[null,'::before','::after']]
+ ])];
+ const point=await run(()=>{const select=document.querySelector('select[aria-label="请求模式"]'),rect=select.getBoundingClientRect();return {x:Math.round(rect.left+rect.width/2),y:Math.round(rect.top+rect.height/2)};});
+ win.webContents.sendInputEvent({type:'mouseMove',...point});win.webContents.sendInputEvent({type:'mouseDown',button:'left',...point});win.webContents.sendInputEvent({type:'mouseUp',button:'left',...point});await settle();
+ await check(()=>{if(!document.querySelector('select[aria-label="请求模式"]').matches(':open'))throw Error('Accessibility native picker did not open');});
+ samples.push(await inspectReducedGlass('native-picker',[
+  ['select[aria-label="请求模式"]',[null,'::picker(select)']],
+  ['.modal-overlay',[null,'::before']],
+  ['.modal',[null,'::before']]
+ ]));
+ await capture('dreamy-accessibility-'+feature+'-'+mode+'-picker');
+ escape();await settle();
+ await check(()=>{if(document.querySelector('select[aria-label="请求模式"]').matches(':open') || !document.querySelector('.modal'))throw Error('Accessibility picker Escape also closed its dialog');});
+ samples.push(await inspectReducedGlass('closed-native-picker',[['select[aria-label="请求模式"]',['::picker(select)']]]));
+ await run(()=>[...document.querySelector('[aria-label="插件详情"]').querySelectorAll('button')].find(button=>button.textContent.includes('关闭详情')).click());
+ const dialogCleanup=await waitForPopupCleanup();
+ await run(()=>{const trigger=document.querySelector('.fixture-actions .multi-trigger');trigger.focus();trigger.click();});await settle();
+ samples.push(await inspectReducedGlass('multi-select',[['.multi-popover',[null,'::before','::after']]]));
+ await capture('dreamy-accessibility-'+feature+'-'+mode+'-multi');
+ escape();const multiCleanup=await waitForPopupCleanup();
+ accessibilityResults.push({mode,feature,samples,dialogCleanup,multiCleanup});
+}
+await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'},{name:'prefers-reduced-transparency',value:'no-preference'},{name:'forced-colors',value:'none'}]});
+win.webContents.debugger.detach();
+console.log('DREAMY_ACCESSIBILITY '+JSON.stringify(accessibilityResults));
+}
+
 const refractionResults=[];
 const selectionLensResults=[];
+const workspaceSamples=[],modelSamples=[];
+let refractionSettings;
 if(config.refractionOnly){
 await win.loadFile(path.join(__dirname,'index.html'));await ready();
-const workspaceSamples=[];
-for(const mode of ['light','dark']){
-await run(mode=>{fixture.setTheme(mode,true);const shell=document.querySelector('.desktop-shell');shell.dataset.appearanceTransparency='clear';shell.dataset.appearanceBlur='soft';shell.dataset.appearanceDistortion='strong';},mode);await settle();
-const geometry=await check(()=>{
+for(const mode of ['light','dark'])for(const [transparency,blur] of [['clear','soft'],['clear','standard'],['balanced','standard']]){
+await run((mode,transparency,blur)=>{fixture.setTheme(mode,true);const shell=document.querySelector('.desktop-shell');shell.dataset.appearanceTransparency=transparency;shell.dataset.appearanceBlur=blur;shell.dataset.appearanceDistortion='strong';},mode,transparency,blur);await settle();
+const geometry=await check(blur=>{
 const shell=document.querySelector('.desktop-shell'),sidebar=shell.querySelector('.sidebar'),workspace=shell.querySelector('.content-scroll');
-for(const element of [sidebar,workspace]){const background=getComputedStyle(element,'::before');if(!element.style.getPropertyValue('--lumi-glass-filter').includes('url(') || !background.backdropFilter.includes('url(') || !background.backdropFilter.includes('blur(2px)') || background.pointerEvents!=='none' || background.zIndex!=='-1')throw Error('Workspace glass missing background-only refraction '+element.className+' '+background.backdropFilter);}
+for(const element of [sidebar,workspace]){const background=getComputedStyle(element,'::before');if(!element.style.getPropertyValue('--lumi-glass-filter').includes('url(') || !background.backdropFilter.includes('url(') || !background.backdropFilter.includes('blur('+(blur==='soft' ? 2 : 12)+'px)') || background.pointerEvents!=='none' || background.zIndex!=='-1')throw Error('Workspace glass missing background-only refraction '+element.className+' '+background.backdropFilter);}
 const area=shell.querySelector('.main-area'),before=getComputedStyle(workspace,'::before');
 return {height:area.clientHeight,backgroundHeight:parseFloat(before.height),sidebar:sidebar.getBoundingClientRect().toJSON(),workspace:workspace.getBoundingClientRect().toJSON()};
-});
+},blur);
 if(Math.abs(geometry.height-geometry.backgroundHeight)>1)throw Error('Workspace backdrop does not fill visible area');
 const borderPixels=async()=>{await paint();const captures=[];for(const rect of [geometry.sidebar,geometry.workspace]){const image=await win.webContents.capturePage({x:Math.ceil(rect.x)+2,y:Math.ceil(rect.y)+26,width:10,height:Math.max(10,Math.floor(rect.height)-52)},{stayHidden:true,stayAwake:true});captures.push(Buffer.from(image.toBitmap()));}return captures;};
 await run(()=>document.querySelector('.desktop-shell').dataset.appearanceDistortion='off');await settle();const clearBorders=await borderPixels();
 await run(()=>document.querySelector('.desktop-shell').dataset.appearanceDistortion='strong');await settle();const glassBorders=await borderPixels();
 const pixelDifferences=glassBorders.map((pixels,index)=>{const baseline=clearBorders[index];let sum=0;for(let i=0;i<pixels.length;i+=4)sum+=Math.abs(pixels[i]-baseline[i])+Math.abs(pixels[i+1]-baseline[i+1])+Math.abs(pixels[i+2]-baseline[i+2]);return sum/(pixels.length/4);});
-if(pixelDifferences.some(value=>value===0))throw Error('Actual workspace background refraction unchanged '+JSON.stringify(pixelDifferences));
+if(blur==='soft' && pixelDifferences.some(value=>value===0))throw Error('Actual workspace background refraction unchanged '+JSON.stringify(pixelDifferences));
 await run(()=>{const workspace=document.querySelector('.content-scroll');workspace.scrollTop=120;});await settle();
 await check(()=>{const workspace=document.querySelector('.content-scroll'),area=document.querySelector('.main-area'),s=getComputedStyle(workspace,'::before');if(parseFloat(s.top)!==0 || Math.abs(parseFloat(s.height)-area.clientHeight)>1)throw Error('Workspace backdrop moved with scrolling');workspace.scrollTop=0;});
-await capture('dreamy-workspace-glass-'+mode);workspaceSamples.push({mode,pixelDifferences,...geometry});
+const screenshot='dreamy-workspace-'+mode+'-'+transparency+'-'+blur;
+await capture(screenshot);
+if(transparency==='clear' && blur==='soft')await capture('dreamy-workspace-glass-'+mode);
+workspaceSamples.push({mode,transparency,blur,screenshot:screenshot+'.png',pixelDifferences,...geometry});
 }
 console.log('DREAMY_WORKSPACE_GLASS '+JSON.stringify(workspaceSamples));
 // Use the real model-card frame and a detailed background to distinguish
 // displacement from an opacity/highlight change. The stripes are a diagnostic
 // background only; they are never added to the shipped theme.
-const modelSamples=[];
 for(const mode of ['light','dark']){
 await run(mode=>{fixture.setTheme(mode,true);document.documentElement.dataset.fixtureModelGlass='true';const shell=document.querySelector('.desktop-shell');shell.dataset.appearanceBlur='soft';shell.dataset.appearanceTransparency='clear';shell.dataset.appearanceDistortion='off';const workspace=shell.querySelector('.content-scroll');workspace.scrollTop=0;workspace.style.setProperty('background','repeating-linear-gradient(115deg,#183047 0 13px,#bfd5df 13px 27px,#40577c 27px 41px)');},mode);await settle();
 const geometry=await check(()=>{const card=document.querySelector('.fixture-model-glass .model-card'),s=getComputedStyle(card,'::before');return {card:card.getBoundingClientRect().toJSON(),title:card.querySelector('h3').getBoundingClientRect().toJSON()};});
@@ -241,12 +317,19 @@ const glass=document.createElement('div');glass.className='multi-popover';glass.
 const bitmap=async()=>{const image=await win.webContents.capturePage({x:410,y:310,width:240,height:120},{stayHidden:true,stayAwake:true});return {data:Buffer.from(image.toBitmap()),...image.getSize()};};
 const settings=await check(()=>{
 const shell=document.querySelector('.desktop-shell'),probe=document.querySelector('#refraction-probe');
-const alphas=[];for(const option of ['clear','balanced','solid']){shell.dataset.appearanceTransparency=option;const color=getComputedStyle(shell).getPropertyValue('--dream-floating-glass');const swatch=document.createElement('span');swatch.style.backgroundColor=color;shell.append(swatch);const resolved=getComputedStyle(swatch).backgroundColor;swatch.remove();alphas.push(resolved);}
+const transparency=[],canvas=document.createElement('canvas');canvas.width=canvas.height=1;const context=canvas.getContext('2d');
+for(const mode of ['light','dark']){
+ fixture.setTheme(mode,true);const alphas=[],alphaValues=[];
+ for(const option of ['clear','balanced','solid']){shell.dataset.appearanceTransparency=option;const color=getComputedStyle(shell).getPropertyValue('--dream-floating-glass');const swatch=document.createElement('span');swatch.style.backgroundColor=color;shell.append(swatch);const resolved=getComputedStyle(swatch).backgroundColor;swatch.remove();context.clearRect(0,0,1,1);context.fillStyle=resolved;context.fillRect(0,0,1,1);alphas.push(resolved);alphaValues.push(context.getImageData(0,0,1,1).data[3]/255);}
+ if(!(alphaValues[0]>0 && alphaValues[0]<alphaValues[1] && alphaValues[1]<alphaValues[2] && alphaValues[2]===1))throw new Error('Transparency presets must increase actual opacity through clear/balanced/solid '+JSON.stringify({mode,alphas,alphaValues}));
+ transparency.push({mode,alphas,alphaValues});
+}
+fixture.setTheme('light',true);
 const blurs=[];for(const option of ['off','soft','moderate','standard','strong']){shell.dataset.appearanceBlur=option;blurs.push(getComputedStyle(probe).backdropFilter);}
-if(!alphas[0].includes('0.46') || !alphas[1].includes('0.72') || alphas[2].includes('rgba'))throw new Error('Transparency presets do not independently change opacity '+alphas);
 for(const [i,radius] of [0,2,6,12,18].entries())if(!blurs[i].includes('blur('+radius+'px)'))throw new Error('Blur preset does not resolve '+JSON.stringify(blurs));
-shell.dataset.appearanceTransparency='clear';shell.dataset.appearanceBlur='off';return {alphas,blurs};
+shell.dataset.appearanceTransparency='clear';shell.dataset.appearanceBlur='off';return {transparency,blurs};
 });await settle();
+refractionSettings=settings;
 const baseline=await bitmap();await capture('dreamy-refraction-off');
 for(const option of ['mild','standard','strong']){
 await run(option=>document.querySelector('.desktop-shell').dataset.appearanceDistortion=option,option);await settle();await paint();
@@ -280,7 +363,7 @@ await check(()=>{if(!document.querySelector('.fixture-materials .model-mode-sele
 }
 console.log('DREAMY_REFRACTION '+JSON.stringify({settings,samples:refractionResults,labelSamples}));
 }
-const result={pluginVersion:config.version,hostVersion:config.hostVersion,hardware:config.hardware,refractionScenarios:refractionResults,selectionLensScenarios:selectionLensResults,materialScenarios:materialResults,pixelScenarios:pixelResults,motionScenarios:motionResults,scenarios:results,narrowScenarios:narrowResults};fs.writeFileSync(path.join(config.output,config.refractionOnly ? 'result-refraction-'+(config.hardware ? 'gpu' : 'software')+'.json' : config.materialsOnly ? 'result-materials.json' : config.narrowOnly ? 'result-narrow.json' : config.pixelsOnly ? 'result-pixels-'+(config.hardware ? 'gpu' : 'software')+'.json' : config.motionOnly ? 'result-motion.json' : 'result.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));win.destroy();app.exit(0);
+const result={baseline:config.baseline,pluginVersion:config.version,hostVersion:config.hostVersion,hardware:config.hardware,refractionSettings,workspaceScenarios:workspaceSamples,modelScenarios:modelSamples,refractionScenarios:refractionResults,selectionLensScenarios:selectionLensResults,accessibilityScenarios:accessibilityResults,materialScenarios:materialResults,pixelScenarios:pixelResults,motionScenarios:motionResults,scenarios:results,narrowScenarios:narrowResults};fs.writeFileSync(path.join(config.output,config.accessibilityOnly ? 'result-accessibility-'+(config.hardware ? 'gpu' : 'software')+'.json' : config.refractionOnly ? 'result-refraction-'+(config.hardware ? 'gpu' : 'software')+'.json' : config.materialsOnly ? 'result-materials.json' : config.narrowOnly ? 'result-narrow.json' : config.pixelsOnly ? 'result-pixels-'+(config.hardware ? 'gpu' : 'software')+'.json' : config.motionOnly ? 'result-motion.json' : 'result.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));win.destroy();app.exit(0);
 }).catch(error=>{console.error(error.stack || error);app.exit(1);});
 `);
   const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;

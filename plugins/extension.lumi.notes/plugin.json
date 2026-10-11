@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "extension.lumi.notes",
   "name": "工作台便笺",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "hostApiVersion": 1,
   "description": "独立文件形式的示例插件：在工作台保存个人便笺，演示设置和侧栏扩展。",
   "author": "Lumi contributors",

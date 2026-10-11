@@ -2,10 +2,10 @@
 :scope {
   --sidebar-width: 216px;
   --shell-inset: 14px;
-  --accent: light-dark(#6a5ae8, #9d92ff);
+  --accent: light-dark(#5946d2, #b3a8ff);
   --accent-foreground: light-dark(#fff, #16132e);
   --accent-soft: light-dark(rgba(106,90,232,.13), rgba(157,146,255,.18));
-  --accent-hover: light-dark(#5849d8, #b7aeff);
+  --accent-hover: light-dark(#4936be, #c6beff);
   --canvas: light-dark(#f2f4fb, #181a26);
   --panel: light-dark(rgba(255,255,255,.78), rgba(26,30,46,.86));
   --panel-strong: light-dark(rgba(255,255,255,.94), rgba(30,34,52,.96));
@@ -30,11 +30,12 @@
   --chart-fill: light-dark(rgba(122,110,232,.16), rgba(157,146,255,.22));
   --tooltip-bg: var(--panel-strong);
   /* The host owns displacement maps; the package contains no shader or script. */
-  --lumi-glass-distortion: 3;
-  --dream-glass: light-dark(rgba(255,255,255,.48), rgba(22,28,44,.62));
-  --dream-floating-glass: light-dark(rgba(250,253,255,.72), rgba(24,31,48,.78));
+  --lumi-glass-distortion: 6;
+  --dream-glass: light-dark(rgba(255,255,255,.32), rgba(22,28,44,.42));
+  --dream-floating-glass: light-dark(rgba(250,253,255,.62), rgba(24,31,48,.72));
   --dream-selected-glass: light-dark(rgba(224,225,255,.36), rgba(97,88,161,.3));
-  --dream-glass-border: light-dark(rgba(255,255,255,.72), rgba(202,222,255,.2));
+  --dream-balance-fill: var(--accent-soft);
+  --dream-glass-border: light-dark(rgba(255,255,255,.82), rgba(202,222,255,.3));
   --dream-spec: light-dark(rgba(255,255,255,.7), rgba(216,233,255,.14));
   --dream-shadow: 0 18px 48px -18px light-dark(rgba(52,70,112,.3), rgba(0,0,0,.6)), 0 3px 12px -5px light-dark(rgba(52,70,112,.14), rgba(0,0,0,.3));
   --surface-shadow: var(--dream-shadow);
@@ -54,9 +55,9 @@
   --overlay: var(--dream-overlay);
   color: var(--text);
   background:
-    radial-gradient(95% 100% at 0% 0%, light-dark(rgba(147,190,255,.42), rgba(44,72,138,.36)), transparent 64%),
-    radial-gradient(85% 90% at 100% 12%, light-dark(rgba(225,190,242,.32), rgba(96,65,125,.26)), transparent 62%),
-    radial-gradient(110% 100% at 56% 112%, light-dark(rgba(148,228,212,.32), rgba(28,86,92,.3)), transparent 68%),
+    radial-gradient(62% 78% at 2% 4%, light-dark(rgba(147,190,255,.58), rgba(54,88,164,.52)) 8%, transparent 68%),
+    radial-gradient(58% 74% at 100% 20%, light-dark(rgba(225,175,242,.48), rgba(122,76,154,.42)) 12%, transparent 66%),
+    radial-gradient(72% 65% at 48% 112%, light-dark(rgba(128,225,208,.5), rgba(31,112,116,.46)) 18%, transparent 72%),
     linear-gradient(158deg, light-dark(#eef3fb, #141b29), light-dark(#f4f2fa, #1c2030) 48%, light-dark(#edf5f5, #15252c));
 }
 
@@ -64,8 +65,8 @@
 :scope[data-appearance-transparency="clear"] {
   --panel: light-dark(rgba(255,255,255,.58), rgba(26,30,46,.7));
   --panel-soft: light-dark(rgba(239,243,252,.5), rgba(43,48,68,.54));
-  --dream-glass: light-dark(rgba(255,255,255,.28), rgba(22,28,44,.38));
-  --dream-floating-glass: light-dark(rgba(250,253,255,.46), rgba(24,31,48,.52));
+  --dream-glass: light-dark(rgba(255,255,255,.18), rgba(22,28,44,.26));
+  --dream-floating-glass: light-dark(rgba(250,253,255,.4), rgba(24,31,48,.5));
   --dream-selected-glass: light-dark(rgba(224,225,255,.22), rgba(97,88,161,.2));
 }
 :scope[data-appearance-transparency="solid"] {
@@ -74,12 +75,14 @@
   --dream-glass: light-dark(#f5f8ff, #1c2335);
   --dream-floating-glass: light-dark(#fafdff, #181f30);
   --dream-selected-glass: light-dark(#e0e1ff, #393650);
+  --dream-balance-fill: color-mix(in srgb, var(--accent) 12%, var(--panel));
 }
 :scope[data-appearance-blur="off"] { --dream-blur: blur(0px) saturate(1); --dream-popup-blur: blur(0px) saturate(1); --dream-dialog-blur: blur(0px); --dream-control-blur: blur(0px) saturate(1); }
 :scope[data-appearance-blur="soft"] { --dream-blur: blur(3px) saturate(1.1); --dream-popup-blur: blur(2px) saturate(1.1); --dream-dialog-blur: blur(2px); --dream-control-blur: blur(1px) saturate(1.1); }
 :scope[data-appearance-blur="moderate"] { --dream-blur: blur(6px) saturate(1.15); --dream-popup-blur: blur(6px) saturate(1.15); --dream-dialog-blur: blur(6px); --dream-control-blur: blur(6px) saturate(1.15); }
 :scope[data-appearance-blur="strong"] { --dream-blur: blur(26px) saturate(1.3); --dream-popup-blur: blur(18px) saturate(1.25); --dream-dialog-blur: blur(18px); --dream-control-blur: blur(5px) saturate(1.2); }
 :scope[data-appearance-distortion="off"] { --lumi-glass-distortion: 0; }
+:scope[data-appearance-distortion="mild"] { --lumi-glass-distortion: 3; }
 :scope[data-appearance-distortion="standard"] { --lumi-glass-distortion: 6; }
 :scope[data-appearance-distortion="strong"] { --lumi-glass-distortion: 10; }
 
@@ -150,7 +153,8 @@
   min-height: 0;
   overflow: hidden;
   border-radius: 24px;
-  background: var(--dream-sheen) light-dark(rgba(255,255,255,.16), rgba(24,26,44,.24));
+  /* One workspace glass layer: a second shell fill would hide its refraction. */
+  background: transparent;
   border: 1px solid var(--dream-glass-border);
   box-shadow: 0 20px 56px -12px light-dark(rgba(66,60,128,.2), rgba(0,0,0,.4)), inset 0 1px 0 var(--dream-spec);
 }
@@ -215,7 +219,7 @@
 /* The shell background is already soft; repeated surfaces only need tint and sheen. */
 :is(.surface, .panel, .stat-card, .tool-config-card, .model-card, .billing-tool, .billing-total, .token-overview-card, .site-row, .model-choice, .local-session-event, .backup-list > div, .welcome-features > div, .welcome-hero, .market-item) {
   background-image: var(--dream-sheen);
-  background-color: var(--panel);
+  background-color: var(--dream-glass);
   border-color: var(--dream-glass-border);
   box-shadow: var(--dream-surface-shadow), inset 0 -1px 0 var(--dream-glass-border);
 }
@@ -225,7 +229,6 @@
 :scope :is(.surface.panel, .stat-card, .tool-config-card, .model-card, .token-overview-card, .model-toolbar, .statistics-filter, .welcome-hero):not(.modal) {
   --lumi-glass-surface: 1;
   --lumi-glass-filter: blur(0px);
-  --dream-container-fill: var(--panel);
   position: relative;
   z-index: 0;
   background: transparent;
@@ -238,10 +241,11 @@
   z-index: -1;
   border-radius: inherit;
   pointer-events: none;
-  background: var(--dream-sheen) var(--dream-container-fill);
+  /* A fallback keeps component-specific fills from losing to this selector's specificity. */
+  background: var(--dream-sheen) var(--dream-container-fill, var(--dream-glass));
   backdrop-filter: var(--dream-popup-blur) var(--lumi-glass-filter, blur(0px));
 }
-:scope .stat-card.balance-card { --dream-container-fill: var(--accent-soft); }
+:scope .stat-card.balance-card { --dream-container-fill: var(--dream-balance-fill); }
 /* Model rows carry the glass on their child card. Use the glass tint rather
    than the dense data-panel fill so the refracted background stays visible. */
 :scope .model-market-item > .model-card { --dream-container-fill: var(--dream-glass); }
@@ -269,7 +273,7 @@
   background-image: none;
 }
 /* Preserve semantic surfaces instead of repainting totals and warnings as glass. */
-:is(.stat-card.balance-card, .billing-total) { background-color: var(--accent-soft); }
+:is(.stat-card.balance-card, .billing-total) { background-color: var(--dream-balance-fill); }
 :is(.code-preview, .raw-detail pre, .runtime-log-scroll, .local-session-first-prompt pre, .local-session-raw) { background-color: var(--input); }
 .runtime-log-table thead { background-color: var(--panel-strong); }
 /* Paint the header once so unequal column widths do not restart the sheen. */
@@ -291,7 +295,7 @@
   background-color: var(--hover);
 }
 :scope .button.primary {
-  background-image: linear-gradient(135deg, light-dark(rgba(255,255,255,.22), rgba(255,255,255,.12)), transparent 55%);
+  background-image: linear-gradient(135deg, light-dark(rgba(255,255,255,.12), rgba(255,255,255,.08)), transparent 55%);
   box-shadow: 0 6px 16px -4px light-dark(rgba(106,90,232,.4), rgba(0,0,0,.3)), inset 0 1px 0 rgba(255,255,255,.32), inset 0 -1px 0 rgba(20,10,60,.14);
 }
 /* Interaction changes surface light, never moves text or continuously animates glass. */
@@ -628,11 +632,13 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
     --dream-selected-glass: var(--panel-soft);
     --dream-blur: none;
     --dream-popup-blur: none;
+    --dream-balance-fill: color-mix(in srgb, var(--accent) 12%, var(--panel));
   }
   :scope > .main-area, :scope > .titlebar { background: var(--panel); }
 }
 @media (forced-colors: active) {
   :scope .model-mode-selector .segmented-thumb { z-index: 0; backdrop-filter: none; }
+  :scope, :scope[data-appearance-transparency] { --dream-balance-fill: Canvas; }
   :scope, :scope[data-appearance-transparency], :scope[data-appearance-blur] { --accent: Highlight; --text: CanvasText; --panel: Canvas; --panel-strong: Canvas; --panel-soft: Canvas; --input: Canvas; --dream-control-blur: none; }
   :scope :is(.surface.panel, .stat-card, .tool-config-card, .model-card, .token-overview-card, .model-toolbar, .statistics-filter, .plugin-settings-group, .market-item, .plugin-details-section) { background: Canvas; color: CanvasText; border-color: CanvasText; box-shadow: none; }
   :scope :is(.segmented > button.active, .vendor-tabs > button.active, .favorite-filter.active, .page-tabs > button.active, .metric-tabs > button.active, .settings-subnav > button.active, .preview-file-tabs > button.active, .local-session-tabs > button[aria-pressed="true"], .market-kinds > button[aria-pressed="true"], .model-choice.selected, .theme-options > button.active)::after { display: none; }
@@ -661,6 +667,12 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
    zero blur so their label magnification remains readable. */
 :scope, :scope[data-appearance-blur] { --dream-blur: var(--dream-popup-blur); --dream-control-blur: var(--dream-popup-blur); }
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
-  :scope, :scope[data-appearance-blur] { --dream-blur: none; --dream-control-blur: none; }
+  :scope, :scope[data-appearance-blur], :scope[data-appearance-distortion] {
+    --lumi-glass-distortion: 0;
+    --dream-blur: blur(0px);
+    --dream-popup-blur: blur(0px);
+    --dream-control-blur: blur(0px);
+    --dream-dialog-blur: blur(0px);
+  }
   :scope :is(.surface.panel, .stat-card, .tool-config-card, .model-card, .token-overview-card, .model-toolbar, .statistics-filter, .welcome-hero)::before { backdrop-filter: none; }
 }

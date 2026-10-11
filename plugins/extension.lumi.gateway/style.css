@@ -1,6 +1,8 @@
 /* Lumi supplies all element styles through lumi-ui.css. This file only arranges
    the gateway content inside the host's existing page container. */
 .gateway-page { min-width: 0; }
+.gateway-page :is(.page-intro, .section-heading) > div { min-width: 0; }
+.gateway-page :is(h1, h2, h3, .field-help), .gateway-dialog :is(h2, h3, p) { overflow-wrap: anywhere; }
 .gateway-status-badges { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 [data-panel] { display: flex; flex-direction: column; gap: var(--page-gap, 20px); min-width: 0; }
 .gateway-section { min-width: 0; }
@@ -67,7 +69,18 @@
 .gateway-record-counts { display: flex; flex-wrap: wrap; gap: 9px 15px; }
 .gateway-update-note { flex-wrap: wrap; }
 .gateway-update-note > span { flex: 1; min-width: 180px; }
-.gateway-table { min-width: 730px; }
+.gateway-records-scroll { max-height: min(560px, 70vh); overflow: auto; overscroll-behavior: contain; }
+.gateway-records-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.gateway-table { min-width: 730px; table-layout: fixed; }
+.gateway-table th:first-child { width: 48px; }
+.gateway-table th:nth-child(2) { width: 22%; }
+.gateway-table th:nth-child(3) { width: 18%; }
+.gateway-table th:nth-child(4) { width: 26%; }
+.gateway-table th:last-child { width: 86px; }
+.gateway-table :is(th, td) { white-space: normal; overflow-wrap: anywhere; }
+.gateway-table thead th { position: sticky; top: 0; z-index: 1; }
+.gateway-table tbody tr:has(> td:first-child input:checked) { background: var(--accent-soft, var(--hover)); }
+.gateway-table td { vertical-align: top; }
 .gateway-table td .minor { display: block; margin-top: 2px; }
 .gateway-table td .tier { display: block; max-width: 270px; overflow-wrap: anywhere; }
 .gateway-details { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 9px 15px; margin: 0; }
@@ -132,6 +145,8 @@
 .gateway-node-symbol { font-size: 22px; line-height: 1; color: var(--text-secondary); }
 .gateway-flow-link { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; background: none; border: 0; color: var(--text-secondary); font: inherit; font-size: 11px; padding: 0; text-align: center; }
 button.gateway-flow-link { cursor: pointer; }
+button.gateway-flow-link { border-radius: 4px; }
+button.gateway-flow-link:is(:hover, :focus-visible) { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .gateway-flow-link span:first-child { font-size: inherit; }
 .gateway-entry-link, .gateway-selection-link { align-self: start; padding: 9px 3px 0; }
 .gateway-chain-footer { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; }
@@ -146,6 +161,7 @@ button.gateway-flow-link { cursor: pointer; }
 .gateway-protocol-checks legend { margin-bottom: 10px; }
 .gateway-provider-models { display: flex; flex-direction: column; gap: 10px; }
 .gateway-provider-model-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) auto; align-items: end; gap: 10px; }
+.gateway-provider-model-row + .gateway-provider-model-row { border-top: 1px solid var(--line); padding-top: 12px; }
 .gateway-workbench-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--line); padding: 10px 0; }
 .gateway-workbench-row > div:first-child { min-width: 0; overflow-wrap: anywhere; }
 .gateway-workbench-row p { margin: 5px 0 0; }
@@ -199,6 +215,8 @@ button.gateway-flow-link { cursor: pointer; }
 .gateway-listener-switch input:disabled + .gateway-switch-track { opacity: .5; }
 .gateway-provider-dialog { width: 780px; max-height: calc(100vh - 32px); overflow: auto; }
 .gateway-provider-dialog .modal-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.gateway-dialog .modal-heading > div { min-width: 0; }
+.gateway-dialog .modal-heading > button { flex-shrink: 0; }
 .gateway-provider-dialog #route-settings-details { padding: 0; border: 0; box-shadow: none; background: transparent; margin: 0; }
 .gateway-provider-dialog #route-settings-summary, .gateway-provider-dialog #route-form-heading { display: none; }
 .gateway-provider-dialog #provider-dialog-notice { color: var(--orange,var(--text-secondary)); }
@@ -313,7 +331,11 @@ body[data-lumi-layout="fill"] #chain-panel > .gateway-request-footer { margin-to
 .gateway-request-metrics { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; white-space: nowrap; font-size: 10px; color: var(--text-secondary); }
 .gateway-request-metrics b { font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
 .gateway-request-diagnostics > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 11px; color: var(--text-secondary); }
+.gateway-request-diagnostics > summary { flex-wrap: wrap; border-radius: 4px; }
+.gateway-request-diagnostics > summary::before { content: ''; flex: none; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); }
+.gateway-request-diagnostics[open] > summary::before { transform: rotate(45deg); }
 .gateway-request-diagnostics > summary strong { font-size: inherit; font-weight: 500; }
+.gateway-request-diagnostics > summary strong { min-width: 0; overflow-wrap: anywhere; }
 .gateway-request-diagnostics[open] { display: flex; flex-direction: column; gap: 8px; }
 .gateway-request-diagnostics .gateway-request-summary { border: 0; padding: 0; }
 .gateway-upstream-preview { display: flex; flex-direction: column; gap: 4px; margin: 0; }

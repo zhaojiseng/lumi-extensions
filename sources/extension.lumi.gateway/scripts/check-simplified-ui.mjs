@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest=JSON.parse(await fs.readFile(path.join(source,'package-stage/plugin.json'),'utf8'));
-if(manifest.id!=='extension.lumi.gateway'||manifest.name!=='模型网关'||manifest.version!=='1.0.1'||manifest.contributions.length!==2||manifest.contributions.some(view=>view.title!=='模型网关'))throw new Error('The model gateway manifest name/version/view identity is inconsistent.');
+if(manifest.id!=='extension.lumi.gateway'||manifest.name!=='模型网关'||manifest.version!=='1.0.2'||manifest.contributions.length!==2||manifest.contributions.some(view=>view.title!=='模型网关'))throw new Error('The model gateway manifest name/version/view identity is inconsistent.');
 const noProcessSandbox = process.argv.includes('--no-process-sandbox');
 const hostArgument = process.argv.slice(2).find(value => !value.startsWith('--'));
 const host = path.resolve(hostArgument || path.join(root, '..', 'main'));
@@ -32,7 +32,7 @@ if(legacyPreview&&fixtureSdk===sdk)throw new Error('Legacy preview SDK fixture c
 await fs.writeFile(path.join(directory,'lumi-sdk.js'),fixtureSdk);
 await fs.writeFile(path.join(directory,'lumi-ui.css'),uiCss);
 await fs.writeFile(path.join(directory, 'test-mode.json'), JSON.stringify({ processSandboxEnabled: !noProcessSandbox,legacyPreview }));
-for (const name of ['fixture-host.js','dense-ui-scenario.js','compact-overview-probe.js']) await fs.copyFile(path.join(source,'tests',name),path.join(directory,name));
+for (const name of ['fixture-host.js','dense-ui-scenario.js','compact-overview-probe.js','resource-ui-scenario.js']) await fs.copyFile(path.join(source,'tests',name),path.join(directory,name));
 await fs.copyFile(path.join(source,'tests/simplified-ui-scenario.js'),path.join(directory,'ui-scenario.js'));
 // The lightweight RPC fixture has no production ExtensionFrame. Deliver its
 // matching default UI theme through the same SDK envelope as the real frame.
@@ -57,7 +57,7 @@ const result = await new Promise(resolve => {
   child.stdout.on('data', chunk => { stdout += chunk; });
   child.stderr.on('data', chunk => { stderr += chunk; });
   child.on('error', error => resolve({ code: 1, stderr: error.message }));
-  const timer = setTimeout(() => { child.kill(); resolve({ code: 1, stderr: 'Gateway UI fixture timeout' }); }, 45000);
+  const timer = setTimeout(() => { child.kill(); resolve({ code: 1, stderr: 'Gateway UI fixture timeout' }); }, 90000);
   child.on('close', code => { clearTimeout(timer); resolve({ code, stdout, stderr }); });
 });
 if (result.code !== 0) { console.error(result.stderr || result.stdout); process.exitCode = 1; }

@@ -6,7 +6,11 @@ window.createGatewayWorkbench = ({sdk,getState,requireSession,current,action,not
  const endpoints=['/v1/responses','/v1/chat/completions','/v1/messages'],entryIds=['route-entry-responses','route-entry-chat','route-entry-messages'];
  const actionNames={preserve:'保留',remove:'删除','set-if-missing':'缺失补入',override:'覆盖',map:'按值映射',clamp:'范围限制',reject:'拒绝'};
  const fields=[['/service_tier','服务档位'],['/reasoning/effort','Responses 推理强度'],['/reasoning_effort','Chat 推理强度'],['/thinking','Anthropic 思考配置'],['/thinking/type','思考方式'],['/thinking/budget_tokens','思考预算'],['/output_config/effort','Anthropic effort'],['/max_tokens','Messages 输出上限'],['/max_output_tokens','Responses 输出上限'],['/max_completion_tokens','Chat 输出上限'],['/temperature','Temperature'],['/top_p','Top P'],['/top_k','Top K'],['/stop','停止条件'],['/stop_sequences','Messages 停止序列'],['/tool_choice','工具选择'],['/parallel_tool_calls','并行工具'],['/response_format','Chat 输出格式'],['/text/format','Responses 输出格式'],['/output_config/format','Messages 输出格式'],['/store','Responses 存储'],['/prompt_cache_key','缓存键'],['/prompt_cache_retention','缓存保留'],['/cache_control','顶层缓存策略'],['/system/*/cache_control','系统内容缓存标记'],['/messages/*/content/*/cache_control','消息内容缓存标记'],['/tools/*/cache_control','工具缓存标记'],['/input/*/content/*/cache_control','Responses 内容缓存标记'],['/stream_options/include_usage','流式用量'],['/metadata','元数据'],['/reasoning','推理配置'],['/reasoning/summary','推理摘要'],['/output_config','输出配置'],['/text','文本配置'],['/text/verbosity','文本详细程度'],['/stream_options','流配置']];
- const wb={version:0,agents:[],rectifiers:[],nativeRectifiers:[],legacyIds:new Map(),accessPrefs:null,accessPromise:null,editingRule:null,ruleDirty:false,ruleBase:'',previewTicket:0,timer:null,pollBusy:false,snapshot:null,selectedTrace:null,pendingDelete:null,entryTouched:false,overviewPrefs:null,prefsPromise:null,catalogKey:null,catalogObserver:null,requestObserver:null,wireFrame:null,activeProviders:new Set(),activeModels:new Set(),hasActive:false};
+ const wb={version:0,agents:[],rectifiers:[],nativeRectifiers:[],legacyIds:new Map(),accessPrefs:null,accessPromise:null,editingRule:null,ruleDirty:false,ruleBase:'',previewTicket:0,timer:null,pollToken:null,idlePolls:0,listenerKey:null,snapshot:null,selectedTrace:null,detailKey:null,highlightKey:null,previewKey:null,pendingDelete:null,entryTouched:false,overviewPrefs:null,prefsPromise:null,catalogKey:null,catalogObserver:null,requestObserver:null,wireFrame:null,activeProviders:new Set(),activeModels:new Set(),hasActive:false};
+ const setText=(el,value)=>{const next=String(value);if(el.textContent!==next)el.textContent=next;};
+ const setAttr=(el,name,value)=>{const next=String(value);if(el.getAttribute(name)!==next)el.setAttribute(name,next);};
+ const toggleClass=(el,name,value)=>{if(el.classList.contains(name)!==Boolean(value))el.classList.toggle(name,Boolean(value));};
+ const overviewVisible=()=>!getState().disposed&&getState().activeTab==='gateway'&&!document.hidden;
  const known=(v,suffix='')=>typeof v==='number'&&Number.isFinite(v)?v.toLocaleString('zh-CN')+suffix:'未知';
  const tier=f=>f?.state==='string'?f.value:f?.state==='missing'?'缺失':f?.state==='null'?'null':'未知';
  const signature=id=>JSON.stringify([...$(id).querySelectorAll('input,select,textarea')].map(el=>[el.id,el.type==='checkbox'?el.checked:el.value]));
@@ -132,32 +136,37 @@ window.createGatewayWorkbench = ({sdk,getState,requireSession,current,action,not
   for(const item of catalog){const id=item.id;if(knownUpstream.has(id)){existing++;continue;}if(names.has(id)){conflicts++;continue;}if(models.length>=128){capacity++;continue;}models.push({id,upstreamModel:id,enabled:true,overviewHidden:false});names.add(id);knownUpstream.add(id);added++;}
   if(added){storeModels(models);modelRows();}return {added,existing,conflicts,capacity};
  }
- function wire(svg,box,from,to,{edge,providerId,modelId,vertical=false}={}) {
+ function styleWire(path){const {edge,providerId,modelId}=path.dataset;
+  toggleClass(path,'is-active',edge==='entry'?wb.hasActive:edge==='selection'?wb.activeProviders.has(providerId):wb.activeModels.has(providerId+'\0'+modelId));
+  toggleClass(path,'is-selected',wb.selectedProvider&&(edge==='entry'||providerId===wb.selectedProvider&&(!modelId||modelId===wb.selectedModel)));
+ }
+ function wire(svg,index,box,from,to,{edge,providerId,modelId,vertical=false}={}) {
   const x1=(vertical?from.left+from.width/2:from.right)-box.left,y1=(vertical?from.bottom:from.top+from.height/2)-box.top;
   const x2=(vertical?to.left+to.width/2:to.left)-box.left,y2=(vertical?to.top:to.top+to.height/2)-box.top;
-  const path=document.createElementNS('http://www.w3.org/2000/svg','path'),bend=vertical?(y1+y2)/2:(x1+x2)/2;
-  path.setAttribute('d',vertical?'M '+x1+' '+y1+' C '+x1+' '+bend+', '+x2+' '+bend+', '+x2+' '+y2:'M '+x1+' '+y1+' C '+bend+' '+y1+', '+bend+' '+y2+', '+x2+' '+y2);
-  path.dataset.edge=edge;if(providerId)path.dataset.providerId=providerId;if(modelId)path.dataset.modelId=modelId;
-  path.classList.toggle('is-active',Boolean(edge==='entry'?wb.hasActive:edge==='selection'?wb.activeProviders.has(providerId):wb.activeModels.has(providerId+'\0'+modelId)));
-  path.classList.toggle('is-selected',Boolean(wb.selectedProvider&&(edge==='entry'||providerId===wb.selectedProvider&&(!modelId||modelId===wb.selectedModel))));
-  svg.append(path);
+  const path=svg.children[index]||document.createElementNS('http://www.w3.org/2000/svg','path'),bend=vertical?(y1+y2)/2:(x1+x2)/2;
+  setAttr(path,'d',vertical?'M '+x1+' '+y1+' C '+x1+' '+bend+', '+x2+' '+bend+', '+x2+' '+y2:'M '+x1+' '+y1+' C '+bend+' '+y1+', '+bend+' '+y2+', '+x2+' '+y2);
+  setAttr(path,'data-edge',edge);if(providerId)setAttr(path,'data-provider-id',providerId);else path.removeAttribute('data-provider-id');if(modelId)setAttr(path,'data-model-id',modelId);else path.removeAttribute('data-model-id');
+  styleWire(path);if(!path.parentNode)svg.append(path);
  }
  function drawWires(){
-  wb.wireFrame=null;if($('tab-gateway').hidden)return;
-  const flow=$('chain-flow'),svg=$('chain-flow-wires'),box=flow.getBoundingClientRect();svg.replaceChildren();if(!box.width||!box.height)return;
-  svg.setAttribute('viewBox','0 0 '+box.width+' '+box.height);
+  wb.wireFrame=null;if(!overviewVisible()||$('tab-gateway').hidden)return;
+  const flow=$('chain-flow'),svg=$('chain-flow-wires'),box=flow.getBoundingClientRect();if(!box.width||!box.height)return;
   const agent=flow.querySelector('.gateway-agent-node').getBoundingClientRect(),lumi=flow.querySelector('.gateway-lumi-node').getBoundingClientRect();
-  wire(svg,box,agent,lumi,{edge:'entry'});
+  const main={svg,box,edges:[[agent,lumi,{edge:'entry'}]]},layouts=[main];
+  // Read all node bounds before writing SVG attributes to avoid layout thrashing.
   for(const group of $('chain-catalog').querySelectorAll('.gateway-provider-group')){
    const provider=group.querySelector('[data-chain-provider-id]'),origin=provider.getBoundingClientRect(),vertical=origin.left<lumi.right-2;
-   wire(svg,box,lumi,origin,{edge:'selection',providerId:provider.dataset.chainProviderId,vertical});
-   const groupSvg=group.querySelector('svg'),groupBox=group.getBoundingClientRect();groupSvg.replaceChildren();if(!groupBox.width||!groupBox.height)continue;
-   groupSvg.setAttribute('viewBox','0 0 '+groupBox.width+' '+groupBox.height);
-   for(const model of group.querySelectorAll('[data-chain-model-id]'))wire(groupSvg,groupBox,origin,model.getBoundingClientRect(),{edge:'model',providerId:provider.dataset.chainProviderId,modelId:model.dataset.chainModelId});
+   main.edges.push([lumi,origin,{edge:'selection',providerId:provider.dataset.chainProviderId,vertical}]);
+   const groupSvg=group.querySelector('svg'),groupBox=group.getBoundingClientRect();if(!groupBox.width||!groupBox.height)continue;
+   const edges=[...group.querySelectorAll('[data-chain-model-id]')].map(model=>[origin,model.getBoundingClientRect(),{edge:'model',providerId:provider.dataset.chainProviderId,modelId:model.dataset.chainModelId}]);layouts.push({svg:groupSvg,box:groupBox,edges});
+  }
+  for(const layout of layouts){setAttr(layout.svg,'viewBox','0 0 '+layout.box.width+' '+layout.box.height);
+   layout.edges.forEach(([from,to,options],index)=>wire(layout.svg,index,layout.box,from,to,options));
+   while(layout.svg.children.length>layout.edges.length)layout.svg.lastElementChild.remove();
   }
  }
- function scheduleWires(){if(wb.wireFrame===null)wb.wireFrame=requestAnimationFrame(drawWires);}
- function renderCatalog(){const s=getState(),key=JSON.stringify([s.session?.sessionId,s.configVersion,wb.overviewPrefs,[...wb.activeModels]]);if(key===wb.catalogKey)return;wb.catalogKey=key;const list=$('chain-catalog'),scrollTop=list.scrollTop;list.replaceChildren();wb.catalogObserver?.disconnect();
+ function scheduleWires(){if(overviewVisible()&&wb.wireFrame===null)wb.wireFrame=requestAnimationFrame(drawWires);}
+ function renderCatalog(){const s=getState(),revealed=[...wb.activeModels].filter(id=>{const split=id.indexOf('\0');return hiddenModels(id.slice(0,split)).includes(id.slice(split+1));}).sort(),key=JSON.stringify([s.session?.sessionId,s.local?.configured,revealed]);if(key===wb.catalogKey&&s.routes===wb.catalogRoutes&&wb.overviewPrefs===wb.catalogPrefs)return;wb.catalogKey=key;wb.catalogRoutes=s.routes;wb.catalogPrefs=wb.overviewPrefs;wb.highlightKey=null;const list=$('chain-catalog'),scrollTop=list.scrollTop;list.replaceChildren();wb.catalogObserver?.disconnect();
   for(const route of s.routes){const group=node('div',undefined,'gateway-provider-group'),provider=node('button',undefined,'gateway-provider-node');group.dataset.providerId=route.id;provider.type='button';provider.dataset.chainProviderId=route.id;provider.setAttribute('aria-label','编辑供应商 '+labelRoute(route));provider.append(node('span','▱','gateway-node-symbol'),node('strong',labelRoute(route)),node('span',(route.protocol==='anthropic'?'Anthropic':'OpenAI 兼容')+' · '+(route.enabled?'已启用':'已停用'),'small-text muted'));provider.addEventListener('click',()=>void action(provider,()=>editProvider(route.id)));
    const models=node('div',undefined,'gateway-model-nodes'),all=route.models||[],hidden=hiddenModels(route.id),visible=all.filter(m=>!hidden.includes(m.id)||wb.activeModels.has(route.id+'\0'+m.id));
    for(const model of visible){const button=node('button',undefined,'gateway-model-node');button.type='button';button.dataset.chainModelId=model.id;button.dataset.providerId=route.id;button.setAttribute('aria-label','编辑模型 '+model.id+'，供应商 '+labelRoute(route));button.append(node('strong',model.id),node('span',model.upstreamModel,'small-text muted'));if(!model.enabled)button.append(node('span','已停用','small-text muted'));button.addEventListener('click',()=>void action(button,()=>editProvider(route.id,{focusModel:model.id})));models.append(button);}
@@ -169,9 +178,12 @@ window.createGatewayWorkbench = ({sdk,getState,requireSession,current,action,not
   list.append(catalogAdd);list.scrollTop=scrollTop;if(wb.catalogObserver){for(const el of [list,$('chain-flow'),document.querySelector('.gateway-agent-node'),document.querySelector('.gateway-lumi-node'),...list.children])wb.catalogObserver.observe(el);}scheduleWires();updateButtons();
  }
  function activeChains(){const traces=wb.snapshot?.traces||[];wb.hasActive=traces.some(t=>t.phase!=='finished');wb.activeProviders=new Set();wb.activeModels=new Set();for(const t of traces){if(t.phase==='finished'||!t.chain)continue;wb.activeProviders.add(t.chain.providerId);if(t.chain.requestedModel)wb.activeModels.add(t.chain.providerId+'\0'+t.chain.requestedModel);}}
- function highlightCatalog(trace){wb.selectedProvider=trace?.providerId||null;wb.selectedModel=trace?.chain?.requestedModel||trace?.requestedModel||null;scheduleWires();for(const el of $('chain-catalog').querySelectorAll('[data-chain-provider-id],[data-chain-model-id]')){const providerId=el.dataset.chainProviderId||el.dataset.providerId,selected=providerId===trace?.providerId&&(!el.dataset.chainModelId||el.dataset.chainModelId===(trace?.chain?.requestedModel||trace?.requestedModel)),active=el.dataset.chainModelId?wb.activeModels.has(providerId+'\0'+el.dataset.chainModelId):wb.activeProviders.has(providerId);el.classList.toggle('is-selected',selected);el.classList.toggle('is-active',active);if(selected)el.setAttribute('aria-current','true');else el.removeAttribute('aria-current');}}
+ function highlightCatalog(trace){wb.selectedProvider=trace?.chain?.providerId||trace?.providerId||null;wb.selectedModel=trace?.chain?.requestedModel||trace?.requestedModel||null;const key=JSON.stringify([wb.selectedProvider,wb.selectedModel,wb.hasActive,[...wb.activeProviders].sort(),[...wb.activeModels].sort()]);if(key===wb.highlightKey)return;wb.highlightKey=key;
+  for(const el of $('chain-catalog').querySelectorAll('[data-chain-provider-id],[data-chain-model-id]')){const providerId=el.dataset.chainProviderId||el.dataset.providerId,selected=providerId===wb.selectedProvider&&(!el.dataset.chainModelId||el.dataset.chainModelId===wb.selectedModel),active=el.dataset.chainModelId?wb.activeModels.has(providerId+'\0'+el.dataset.chainModelId):wb.activeProviders.has(providerId);toggleClass(el,'is-selected',selected);toggleClass(el,'is-active',active);if(selected)setAttr(el,'aria-current','true');else if(el.hasAttribute('aria-current'))el.removeAttribute('aria-current');}
+  for(const path of document.querySelectorAll('.gateway-flow-wires path,.gateway-catalog-wires path'))styleWire(path);
+ }
  function newOverviewModel(){const s=getState();if(!s.routes.length){return editProvider(null,{addModel:true});}if(s.routes.length===1)return editProvider(s.routes[0].id,{addModel:true});const select=$('chain-model-provider');select.replaceChildren(...s.routes.map(r=>option(r.id,labelRoute(r))));if(s.routes.some(r=>r.id===s.editingRoute))select.value=s.editingRoute;$('chain-model-picker-dialog').showModal();}
- function upstreamPreview(){const preview=$('route-upstream-preview');preview.replaceChildren();let base;try{base=new URL($('route-upstream').value.trim());}catch{return;}
+ function upstreamPreview(){const key=JSON.stringify([$('route-upstream').value,$('route-upstream-endpoint').value,$('route-protocol').value]);if(wb.previewKey===key)return;wb.previewKey=key;const preview=$('route-upstream-preview');preview.replaceChildren();let base;try{base=new URL($('route-upstream').value.trim());}catch{return;}
   if(base.protocol!=='https:'||base.username||base.password||base.search||base.hash)return;
   const selected=$('route-upstream-endpoint').value,protocol=$('route-protocol').value,paths=selected?[selected]:protocol==='anthropic'?['/v1/messages']:['/v1/responses','/v1/chat/completions'];
   preview.append(node('span',selected?'按当前设置发送：':'按 Agent 入口选择发送路径：'));
@@ -180,17 +192,20 @@ window.createGatewayWorkbench = ({sdk,getState,requireSession,current,action,not
  function requestMetrics(trace){const ended=trace.phase==='finished',elapsed=ended?trace.record?.durationMs??trace.elapsedMs:trace.rateWindow?trace.elapsedMs:Math.max(trace.elapsedMs,Date.now()-trace.startedAtMs),window=trace.rateWindow,rate=window?.windowMs===5000&&window.source!=='unavailable'&&typeof window.charsPerSecond==='number'&&Number.isFinite(window.charsPerSecond)&&window.charsPerSecond>=0?window.charsPerSecond:null;
   return {elapsed:typeof elapsed==='number'&&Number.isFinite(elapsed)&&elapsed>=0?(elapsed/1000).toLocaleString('zh-CN',{minimumFractionDigits:1,maximumFractionDigits:1})+' s':'未知',rate:rate===null?'未知':rate.toLocaleString('zh-CN',{maximumFractionDigits:1})+' 字符/s'};
  }
- function renderRequests(traces=wb.snapshot?.traces||[],selected){const list=$('chain-requests');list.hidden=!traces.length;const style=getComputedStyle(list),gap=parseFloat(style.columnGap)||0,innerWidth=list.clientWidth-(parseFloat(style.paddingLeft)||0)-(parseFloat(style.paddingRight)||0),capacity=Math.max(1,Math.floor((innerWidth+gap)/(206+gap))),active=traces.filter(t=>t.phase!=='finished'),history=traces.filter(t=>t.phase==='finished');traces=[...active,...history].slice(0,capacity);list.dataset.capacity=String(capacity);list.setAttribute('aria-label','最近请求，显示窗口 '+capacity+' 条，进行中的请求优先');if(!selected)selected=traces.find(t=>t.id===wb.selectedTrace)||traces[0];const existing=new Map([...list.children].map(el=>[el.dataset.traceId,el])),cards=[];
+ function renderRequests(traces=wb.snapshot?.traces||[]){const list=$('chain-requests');if(list.hidden!==!traces.length)list.hidden=!traces.length;let capacity=1;
+  if(traces.length){const style=getComputedStyle(list),gap=parseFloat(style.columnGap)||0,innerWidth=list.clientWidth-(parseFloat(style.paddingLeft)||0)-(parseFloat(style.paddingRight)||0);capacity=Math.max(1,Math.floor((innerWidth+gap)/(206+gap)));}
+  const active=traces.filter(t=>t.phase!=='finished'),history=traces.filter(t=>t.phase==='finished');traces=[...active,...history].slice(0,capacity);setAttr(list,'data-capacity',capacity);setAttr(list,'aria-label','最近请求，显示窗口 '+capacity+' 条，进行中的请求优先');if(!traces.some(t=>t.id===wb.selectedTrace))wb.selectedTrace=null;const selected=traces.find(t=>t.id===wb.selectedTrace)||traces[0],existing=new Map([...list.children].map(el=>[el.dataset.traceId,el])),cards=[];
   for(const row of traces){let button=existing.get(row.id);if(!button){button=node('button',undefined,'gateway-request-card');button.type='button';button.dataset.traceId=row.id;const model=node('span',undefined,'gateway-request-model');model.append(node('i',undefined,'gateway-request-status'),node('strong'));const metrics=node('span',undefined,'gateway-request-metrics');for(const [key,label]of [['rate','5s速率'],['elapsed','耗时']]){const field=node('span',label+' '),value=node('b');value.dataset.metric=key;field.append(value);metrics.append(field);}button.append(model,metrics);button.addEventListener('click',()=>{wb.selectedTrace=row.id;renderChain();});}
-   const model=row.chain?.upstreamModel||row.requestedModel||'未知模型',status=row.phase==='finished'?(row.errorCode||row.httpStatus>=400?'错误':'已结束'):'进行中',metrics=requestMetrics(row);button.querySelector('strong').textContent=model;button.querySelector('[data-metric=rate]').textContent=metrics.rate;button.querySelector('[data-metric=elapsed]').textContent=metrics.elapsed;button.dataset.phase=row.phase;button.dataset.active=String(row.phase!=='finished');button.dataset.error=String(Boolean(row.errorCode||row.httpStatus>=400));button.setAttribute('aria-pressed',String(row.id===selected?.id));button.setAttribute('aria-label',model+'，'+status+'，速率 '+metrics.rate+'，耗时 '+metrics.elapsed);button.title=model+' · '+status+'\n速率为最近5秒实际输出字符数 / 观测时长；不足5秒按已观测时长计算。字符不等于token。结束后保留结束时的窗口与实际耗时，旧宿主缺少窗口观测时为未知。';cards.push(button);
+   const model=row.chain?.upstreamModel||row.requestedModel||'未知模型',status=row.phase==='finished'?(row.errorCode||row.httpStatus>=400?'错误':'已结束'):'进行中',metrics=requestMetrics(row);setText(button.querySelector('strong'),model);setText(button.querySelector('[data-metric=rate]'),metrics.rate);setText(button.querySelector('[data-metric=elapsed]'),metrics.elapsed);setAttr(button,'data-phase',row.phase);setAttr(button,'data-active',row.phase!=='finished');setAttr(button,'data-error',Boolean(row.errorCode||row.httpStatus>=400));setAttr(button,'aria-pressed',row.id===selected?.id);setAttr(button,'aria-label',model+'，'+status+'，速率 '+metrics.rate+'，耗时 '+metrics.elapsed);setAttr(button,'title',model+' · '+status+'\n速率为最近5秒实际输出字符数 / 观测时长；不足5秒按已观测时长计算。字符不等于token。结束后保留结束时的窗口与实际耗时，旧宿主缺少窗口观测时为未知。');cards.push(button);
   }
-  if(cards.length!==list.children.length||cards.some((card,index)=>card!==list.children[index]))list.replaceChildren(...cards);
+  for(const child of [...list.children])if(!cards.includes(child))child.remove();
+  cards.forEach((card,index)=>{if(list.children[index]!==card)list.insertBefore(card,list.children[index]||null);});return selected;
  }
  const phaseNames={received:'收到 Agent 请求',prepared:'完成模型选择与整流',upstream:'开始请求供应商',streaming:'收到上游响应',finished:'请求结束'};
- function renderChain(){if(!supported)return;const s=getState(),snapshot=wb.snapshot;activeChains();renderCatalog();$('chain-live').textContent=!s.session?'未连接':snapshot?'实际请求快照':'等待快照';
-  for(const [id,key]of [['chain-total','requests'],['chain-attempts','upstreamAttempts'],['chain-rectified','rectified'],['chain-rerouted','rerouted'],['chain-errors','errors']])$(id).textContent=known(snapshot?.totals[key]);
-  const traces=snapshot?.traces||[];if(wb.selectedTrace&&!traces.some(t=>t.id===wb.selectedTrace))wb.selectedTrace=null;const t=traces.find(t=>t.id===wb.selectedTrace)||traces[0];highlightCatalog(t);
-  renderRequests(traces,t);
+ function renderChain(){if(!supported||!overviewVisible())return;const s=getState(),snapshot=wb.snapshot;activeChains();renderCatalog();setText($('chain-live'),!s.session?'未连接':snapshot?'实际请求快照':'等待快照');
+  for(const [id,key]of [['chain-total','requests'],['chain-attempts','upstreamAttempts'],['chain-rectified','rectified'],['chain-rerouted','rerouted'],['chain-errors','errors']])setText($(id),known(snapshot?.totals[key]));
+  const traces=snapshot?.traces||[],t=renderRequests(traces);highlightCatalog(t);
+  const detailKey=JSON.stringify([snapshot?.snapshotId,snapshot?.revision,t?.id,wb.version]);if(detailKey===wb.detailKey)return;wb.detailKey=detailKey;
   $('chain-requests').hidden=!traces.length;$('chain-diagnostics').hidden=!traces.length;if(!traces.length)$('chain-diagnostics').open=false;document.querySelector('.gateway-chain-selection').hidden=!t;$('chain-events').replaceChildren();$('chain-changes').replaceChildren();$('chain-events').hidden=!t;$('chain-changes').hidden=!t;
   if(!t){$('chain-title').textContent='等待请求';$('chain-agent').textContent='等待客户端';$('chain-provider').textContent='等待选择';$('chain-model').textContent='等待请求';$('chain-result').textContent='暂无实际请求。';return;}
   $('chain-title').textContent=t.phase==='finished'?t.errorCode||t.httpStatus>=400?'请求出现错误':'请求已结束':phaseNames[t.phase];$('chain-agent').textContent=wb.agents.find(a=>a.id===t.agentId)?.name||t.agentId;$('chain-provider').textContent=t.chain?.providerName||t.providerId;$('chain-model').textContent=t.chain?.upstreamModel||t.requestedModel||'未知';
@@ -201,11 +216,14 @@ window.createGatewayWorkbench = ({sdk,getState,requireSession,current,action,not
    $('chain-changes').append(node('span','上游首字 '+known(rec.firstContentMs,' ms')+'；Agent 首段 '+known(t.clientFirstResponseMs,' ms')+'；输入 '+known(rec.inputTokens)+'；输出 '+known(rec.outputTokens)));
   }if(snapshot.truncated)$('chain-changes').append(node('span','快照达到大小上限，部分较早请求未显示。'));
  }
- function schedule(){clearTimeout(wb.timer);if(!supported||!getState().session)return;wb.timer=setTimeout(()=>void poll(),800);}
- async function poll(){if(wb.pollBusy||!getState().session){schedule();return;}if(getState().activeTab!=='gateway'||document.hidden||getState().localChanging){schedule();return;}const scope=requireSession();wb.pollBusy=true;
-  try{const result=await sdk.gateway.chain.snapshot({sessionId:scope.sessionId});if(!current(scope))return;const changed=wb.snapshot?.snapshotId!==result.snapshotId||wb.snapshot?.revision!==result.revision;wb.snapshot=result;if(changed)renderChain();else renderRequests();$('chain-live').textContent='实际请求快照';}
-  catch{if(current(scope))$('chain-live').textContent='快照暂不可用';}finally{wb.pollBusy=false;schedule();}
+ function schedule(){clearTimeout(wb.timer);wb.timer=null;if(!supported||!getState().session||!overviewVisible()||wb.pollToken)return;const delay=wb.hasActive||getState().listener?.activeRequests>0?800:Math.min(5000,800*2**wb.idlePolls);wb.timer=setTimeout(()=>{wb.timer=null;void poll();},delay);}
+ async function poll(){clearTimeout(wb.timer);wb.timer=null;if(wb.pollToken||!getState().session||!overviewVisible())return;if(getState().localChanging){schedule();return;}const scope=requireSession(),token={};wb.pollToken=token;
+  try{const result=await sdk.gateway.chain.snapshot({sessionId:scope.sessionId});if(!current(scope)||wb.pollToken!==token)return;const changed=wb.snapshot?.snapshotId!==result.snapshotId||wb.snapshot?.revision!==result.revision;wb.snapshot=result;activeChains();wb.idlePolls=changed||wb.hasActive?0:Math.min(3,wb.idlePolls+1);if(changed||wb.hasActive)renderChain();if(overviewVisible())setText($('chain-live'),'实际请求快照');}
+  catch{if(current(scope)&&wb.pollToken===token){wb.idlePolls=Math.min(3,wb.idlePolls+1);if(overviewVisible())setText($('chain-live'),'快照暂不可用');}}finally{if(wb.pollToken===token){wb.pollToken=null;if(current(scope))schedule();}}
  }
+ function cancelFrames(){if(wb.wireFrame!==null)cancelAnimationFrame(wb.wireFrame);if(wb.requestFrame!=null)cancelAnimationFrame(wb.requestFrame);wb.wireFrame=null;wb.requestFrame=null;}
+ function refreshChain(){clearTimeout(wb.timer);wb.timer=null;if(!overviewVisible()){cancelFrames();return;}wb.idlePolls=0;renderChain();scheduleWires();void poll();}
+ function statusChanged(){const s=getState(),key=JSON.stringify([s.session?.sessionId,s.listener?.state,s.listener?.activeRequests]);renderChain();if(key===wb.listenerKey)return;wb.listenerKey=key;wb.idlePolls=0;if(s.session)void poll();}
  async function getConfig(scope){if(!supported)return null;await Promise.all([loadOverviewPrefs(),loadAccessPrefs()]);const [agents,rectifiers]=await Promise.all([sdk.gateway.agents.get({sessionId:scope.sessionId}),sdk.gateway.rectifiers.list({sessionId:scope.sessionId})]);return {agents,rectifiers};}
  function accept(extra){if(!supported||!extra)return;const changed=wb.version!==extra.agents.configVersion;wb.version=extra.agents.configVersion;wb.agents=extra.agents.agents;wb.nativeRectifiers=extra.rectifiers.rectifiers;wb.legacyIds.clear();
   const used=new Set(wb.nativeRectifiers.map(r=>r.id));const inherited=getState().rules.map((r,index)=>{let id=r.id;if(used.has(id))id='tier-'+index+'-'+r.id.slice(0,48);while(used.has(id))id+='x';used.add(id);wb.legacyIds.set(id,r.id);return {...r,id,stage:'model',field:'/service_tier'};});
@@ -213,9 +231,10 @@ window.createGatewayWorkbench = ({sdk,getState,requireSession,current,action,not
   routeOptions('rectifier-provider','全部供应商');routeOptions('rectifier-preview-provider');
   rows();if(changed)invalidate();const port=getState().local?.listenPort;$('agent-openai-url').textContent=port?'http://127.0.0.1:'+port+'/v1':'连接后显示';$('agent-anthropic-url').textContent=port?'http://127.0.0.1:'+port:'连接后显示';updateButtons();renderChain();schedule();
  }
- function clear({preserveDrafts=false}={}){wb.pendingDelete=null;$('workbench-delete-dialog').close();$('chain-model-picker-dialog').close();clearTimeout(wb.timer);wb.timer=null;invalidate();wb.snapshot=null;wb.selectedTrace=null;if(!preserveDrafts){wb.agents=[];wb.rectifiers=[];wb.nativeRectifiers=[];wb.legacyIds.clear();wb.ruleDirty=false;wb.editingRule=null;wb.version=0;}renderChain();}
+ function clear({preserveDrafts=false}={}){wb.pendingDelete=null;$('workbench-delete-dialog').close();$('chain-model-picker-dialog').close();clearTimeout(wb.timer);wb.timer=null;wb.pollToken=null;wb.idlePolls=0;wb.listenerKey=null;wb.detailKey=null;wb.highlightKey=null;wb.catalogKey=null;cancelFrames();invalidate();wb.snapshot=null;wb.selectedTrace=null;if(!preserveDrafts){wb.agents=[];wb.rectifiers=[];wb.nativeRectifiers=[];wb.legacyIds.clear();wb.ruleDirty=false;wb.editingRule=null;wb.version=0;}if(getState().disposed){wb.catalogObserver?.disconnect();wb.requestObserver?.disconnect();}}
  if(supported){
-  wb.requestObserver=new ResizeObserver(()=>renderRequests());wb.requestObserver.observe($('chain-requests'));
+  let requestWidth=-1;
+  wb.requestObserver=new ResizeObserver(entries=>{const width=entries[0]?.contentRect.width;if(width===requestWidth)return;requestWidth=width;if(!overviewVisible()||wb.requestFrame!=null)return;wb.requestFrame=requestAnimationFrame(()=>{wb.requestFrame=null;renderChain();});});wb.requestObserver.observe($('chain-requests'));
   wb.catalogObserver=new ResizeObserver(scheduleWires);$('chain-catalog').addEventListener('scroll',scheduleWires,{passive:true});
   $('chain-provider-add').addEventListener('click',()=>void action($('chain-provider-add'),()=>editProvider(null)));
   $('chain-model-add').addEventListener('click',()=>void action($('chain-model-add'),newOverviewModel));
@@ -237,7 +256,7 @@ window.createGatewayWorkbench = ({sdk,getState,requireSession,current,action,not
    if(pending.version!==getState().configVersion||pending.id!==wb.editingRule)failLocal('配置或选择已变化，请重新发起删除。');
    await deleteRule(true);
   }));
-  document.addEventListener('visibilitychange',()=>{schedule();scheduleWires();});
+  document.addEventListener('visibilitychange',refreshChain);
  }
- return {supported,getConfig,accept,hasConfiguredAgents:()=>Boolean(wb.agents.length),preferredAccess,accessChoices,needsAccessSync,synchronizeAccess,editRoute,routeValues,restoreRoute:()=>{if(supported)modelRows();},saveOverviewRoute,addModel,importModels,updateButtons,renderChain,clear,refreshChain:()=>{scheduleWires();void poll();}};
+ return {supported,getConfig,accept,hasConfiguredAgents:()=>Boolean(wb.agents.length),preferredAccess,accessChoices,needsAccessSync,synchronizeAccess,editRoute,routeValues,restoreRoute:()=>{if(supported)modelRows();},saveOverviewRoute,addModel,importModels,updateButtons,renderChain,statusChanged,clear,refreshChain};
 };

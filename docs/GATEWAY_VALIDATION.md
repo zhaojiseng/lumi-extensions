@@ -1,6 +1,25 @@
 # 模型网关验证记录
 
-日期：2026-10-11。当前记录为模型网关 1.0.1 正式发布验证；公开状态见最上方发布记录。下方开发构建、安装和伴随程序结果保留为历史。
+日期：2026-10-11。本轮模型网关 1.0.2 发布前复验见[发布验证记录](RELEASE_VALIDATION_2026-10-11.md)。下方保留本轮升级前的开发验证、既有模型网关 1.0.1 公开验收及历史结果。
+
+## 本地优化 · 显示、刷新与资源占用（2026-10-11，未发布）
+
+本次只修改独立网关插件及其回归测试、说明，使用既有 Lumi 1.0.1 接口。版本仍为 1.0.1，没有提交、推送或覆盖公开 Release。`package-stage` 与 `plugins/extension.lumi.gateway` 的七项资源逐项 SHA-256 相同；未修改主程序或 Rust/Node 网关运行核心。
+
+- 显示：记录表固定列宽与表头、限制滚动高度、突出选中行并支持键盘滚动；长文本在列内换行；诊断折叠、整流入口、导航与对话框补全可读性和无障碍信息。概况继续使用既有紧凑拓扑，活动状态变化保留模型节点焦点，窗口缩小后详情和连线高亮对应可见卡片。
+- 调度：概况活跃时约 800 ms 读取快照，空闲无变化时逐步延长至 5 s；切页或隐藏后停止插件的快照轮询，返回立即读取。既有宿主管理状态订阅保持，不将这项优化表述为停止宿主全部后台请求。目录仅在结构变化时重建，连线复用路径并批量测量；相同卡片内容不重复写入 DOM。
+- 记录：进入记录页才读取列表；连续事件按 250 ms 合并且自动请求不重叠，保留选择、详情与分页保护。覆盖手动刷新与自动请求乱序完成、切页恢复、断连后迟到状态，失败不触发无事件的重试循环。
+
+| 本次实际检查 | 结果与证据 |
+| --- | --- |
+| `node --test sources/extension.lumi.gateway/tests/record-refresh.test.mjs` | 8/8 通过；使用生产页面逻辑、假时钟与隔离 SDK 验证事件洪泛、慢请求、乱序完成、可见性及会话失效 |
+| `node sources/extension.lumi.gateway/scripts/check-simplified-ui.mjs ../main` | `run-FbLVxP/result.json`：既有 21 组界面流程及新增 5 组资源回归通过，6 张浅深主题 / 1280、600、480 px 截图；空闲间隔实测 1554、3196、5008 ms，活跃连续两次轮询 1551 ms；完成卡片内容和 SVG 几何 mutation 均为 0；活动模型切换保留焦点与路径节点，卡片容量 5→2 后选中与详情一致 |
+| 可见性覆盖范围 | 切页与窗口缩放在真实 Electron 中验证；隐藏状态由测试覆写 `document.hidden` 并派发 `visibilitychange`，不冒充操作系统最小化测量 |
+| `node sources/extension.lumi.gateway/scripts/check-integration-ui.mjs ../main` | `real-electron-IcEttv/result.json`：25 组真实宿主流程、24 项视图与 26 项概况/弹窗检查通过，67 张截图，227 次 SDK 调用，26 个事件，错误和意外网络为空；实际 ExtensionHost/Frame、preload、SDK、TLS、系统安全存储与 Rust 核心参与，Electron 进程沙箱开启 |
+| 记录表专项画面检查 | `chromium-Q76sqD/result.json`：80 条合成记录与超长文本，浅深 / 1280、600、480 px 共 6 场景，无页面或单元格溢出，限定滚动与固定表头正常；已目视宽屏浅色、窄屏深色记录表和真实宿主并发概况、深色供应商弹窗 |
+| 官方包校验及同步 | `npm.cmd run check` 全部五插件通过；网关 7 文件 digest 为 `6cc32c9fdeb515f4ae2c5702b8da06ef5ddf93b8cb38ff803527330ec09c06d0`；差异空白及脚本语法检查通过 |
+
+上述报告目录均在 `.cache/gateway-plugin-ui/`。真实宿主使用当前 `main/dist-native/lumi-gateway-runtime.exe`，SHA-256 为 `e930b928a9486f97fed5a96c7e8f36a6f78edc9e33db998a54593f37214d94b9`。沙箱账户首次启动遇到 Windows AppContainer ACL 限制，改用当前用户执行隔离夹具；没有修改 ACL 或关闭 Electron 沙箱。中途发现的 ResizeObserver 循环已修复并由最终两组 Electron 回归验证。全部数据、凭据、CLI 和上游为隔离夹具；没有执行真实账户调用或用户安装操作。未测量进程级 CPU/RSS，以上资源结论仅指实际轮询间隔和 DOM 行为；Windows 结果不替代 macOS/Linux 验证。
 
 ## 1.0.1 · 公开发布验收（2026-10-11）
 

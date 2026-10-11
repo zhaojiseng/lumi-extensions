@@ -39,6 +39,11 @@ app.whenReady().then(async () => {
     await frame.executeJavaScript('window.gatewayDenseScenario=(' + fs.readFileSync(path.join(__dirname, 'dense-ui-scenario.js'), 'utf8') + ')');
     await frame.executeJavaScript('window.gatewayCompactProbe=('+fs.readFileSync(path.join(__dirname,'compact-overview-probe.js'),'utf8')+')');
     const result = await frame.executeJavaScript('(' + scenario + ')({legacyPreview:'+JSON.stringify(Boolean(testMode.legacyPreview))+'})');
+    await frame.executeJavaScript('window.gatewayResourceScenario=(' + fs.readFileSync(path.join(__dirname, 'resource-ui-scenario.js'), 'utf8') + ')');
+    result.resources = await frame.executeJavaScript('window.gatewayResourceScenario()');
+    win.setContentSize(480, 1000);
+    result.resources.narrow = await frame.executeJavaScript('window.gatewayResourceScenario({phase:"narrow"})');
+    win.setContentSize(1280, 1000);
     const overviewChecks=[],screenshots=[];
     for(const width of [1280,600,480]){win.setContentSize(width,1000);for(const theme of ['light','dark']){
      await win.webContents.executeJavaScript('fixture.theme('+JSON.stringify(theme)+')');

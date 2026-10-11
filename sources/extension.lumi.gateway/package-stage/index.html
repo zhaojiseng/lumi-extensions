@@ -19,7 +19,7 @@
       </header>
       <div id="unsupported" class="warning-banner gateway-notice" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg><span>当前宿主未提供网关接口。请等待兼容版本；此页面不会修改本机 CLI 配置。</span></div>
       <div id="status-message" class="info-note gateway-notice" role="status" aria-live="polite" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg><span></span></div>
-      <nav class="page-tabs" aria-label="网关页面"><button type="button" data-tab="gateway" aria-current="page" class="active">运行概况</button><button type="button" data-tab="rectify" data-v2 hidden>整流规则</button><button type="button" data-tab="records">请求记录</button><button type="button" data-tab="settings">接入与设置</button></nav>
+      <nav class="page-tabs" aria-label="网关页面"><button type="button" data-tab="gateway" aria-controls="tab-gateway" aria-current="page" class="active">运行概况</button><button type="button" data-tab="rectify" aria-controls="tab-rectify" data-v2 hidden>整流规则</button><button type="button" data-tab="records" aria-controls="tab-records">请求记录</button><button type="button" data-tab="settings" aria-controls="tab-settings">接入与设置</button></nav>
       <section id="tab-gateway" data-panel="gateway">
         <section id="chain-panel" class="surface panel gateway-chain" data-v2 hidden aria-labelledby="gateway-overview-name">
           <div id="gateway-overview-header" class="gateway-overview-header">
@@ -228,16 +228,16 @@
             <div class="gateway-actions"><button type="button" data-submit="filter-form" data-session class="button primary">应用筛选</button><button id="filter-reset" type="button" class="button default" data-session>清空筛选</button></div>
           </form>
         </div>
-        <div id="records-update-note" class="info-note gateway-notice gateway-update-note" hidden><span id="records-update-message">有新请求，刷新后查看。</span><button id="records-update-apply" type="button" class="button default" data-session>显示最新记录</button></div>
+        <div id="records-update-note" class="info-note gateway-notice gateway-update-note" role="status" aria-live="polite" hidden><span id="records-update-message">有新请求，刷新后查看。</span><button id="records-update-apply" type="button" class="button default" data-session>显示最新记录</button></div>
         <div class="gateway-toolbar">
           <div class="gateway-record-counts"><span id="record-count">尚未读取记录</span><span id="record-selected-count" class="muted">未选择记录</span></div>
           <div class="gateway-actions"><button id="record-export" type="button" class="button default" data-session disabled>导出选中</button><button id="record-delete" type="button" class="button danger" data-session disabled>删除选中</button></div>
         </div>
         <div class="surface panel">
-          <div class="table-scroll">
-            <table class="data-table gateway-table">
+          <div class="table-scroll gateway-records-scroll" tabindex="0" role="region" aria-label="请求记录列表，可滚动查看">
+            <table class="data-table gateway-table" aria-label="请求记录">
               <thead>
-                <tr><th><input id="select-all" type="checkbox" aria-label="选择本页全部记录"></th><th>时间 / 模型</th><th>路由 / 状态</th><th>原值 → 发送 → 报回</th><th>Token / 耗时</th><th>详情</th></tr>
+                <tr><th scope="col" aria-label="选择记录"><input id="select-all" type="checkbox" aria-label="选择本页全部记录"></th><th scope="col">时间 / 模型</th><th scope="col">路由 / 状态</th><th scope="col">原值 → 发送 → 报回</th><th scope="col">Token / 耗时</th><th scope="col">详情</th></tr>
               </thead>
               <tbody id="records-body">
                 <tr><td colspan="6">连接后显示记录</td></tr>
@@ -314,13 +314,13 @@
       </section>
       <footer class="page-footer"><span>本地路由 · 真实观测 · 默认仅记录元数据</span></footer>
     </main>
-    <dialog id="local-settings-dialog" class="modal surface gateway-dialog gateway-local-dialog" aria-labelledby="local-dialog-title">
+    <dialog id="local-settings-dialog" class="modal surface gateway-dialog gateway-local-dialog" aria-labelledby="local-dialog-title" aria-describedby="local-dialog-description">
       <div class="modal-heading"><div><h2 id="local-dialog-title">网关设置</h2><p id="local-dialog-description" class="field-help">设置网关名称、端口与请求限制。</p></div><button id="local-dialog-close" type="button" class="button default" aria-label="关闭网关设置">关闭</button></div>
       <p id="local-dialog-notice" class="field-help" role="status" hidden></p>
       <div id="local-dialog-body" class="gateway-dialog-body"></div>
     </dialog>
-    <dialog id="provider-editor-dialog" class="modal surface gateway-dialog gateway-provider-dialog" aria-labelledby="provider-dialog-title">
-      <div class="modal-heading"><div><h2 id="provider-dialog-title">编辑供应商</h2><p class="field-help">管理共用 API 的模型与概况显示。</p></div><button id="provider-dialog-close" type="button" class="button default" aria-label="关闭供应商编辑">关闭</button></div>
+    <dialog id="provider-editor-dialog" class="modal surface gateway-dialog gateway-provider-dialog" aria-labelledby="provider-dialog-title" aria-describedby="provider-dialog-description">
+      <div class="modal-heading"><div><h2 id="provider-dialog-title">编辑供应商</h2><p id="provider-dialog-description" class="field-help">管理共用 API 的模型与概况显示。</p></div><button id="provider-dialog-close" type="button" class="button default" aria-label="关闭供应商编辑">关闭</button></div>
       <p id="provider-dialog-notice" class="field-help" role="status" hidden></p>
       <div id="provider-dialog-body" class="gateway-dialog-body"></div>
     </dialog>
@@ -330,7 +330,7 @@
       <p class="field-help">自动读取所选供应商的模型目录，将新模型加入待保存列表；已有别名与显示设置保留。</p>
       <div class="modal-actions gateway-actions"><button id="chain-model-picker-confirm" type="button" class="button primary">继续</button><button id="chain-model-picker-cancel" type="button" class="button default">取消</button></div>
     </dialog>
-    <dialog id="delete-dialog" class="modal surface gateway-dialog" aria-labelledby="delete-heading">
+    <dialog id="delete-dialog" class="modal surface gateway-dialog" aria-labelledby="delete-heading" aria-describedby="delete-description">
       <div class="modal-heading">
         <div><h2 id="delete-heading">删除选中记录？</h2></div>
       </div>
@@ -338,7 +338,7 @@
       <p class="field-help">删除会阻止在途记录重新写回。此操作不能撤销，也不承诺物理擦除 SSD。</p>
       <div class="modal-actions gateway-actions"><button id="delete-cancel" type="button" class="button default">保留记录</button><button id="delete-confirm" type="button" class="button danger">确认删除</button></div>
     </dialog>
-    <dialog id="route-delete-dialog" class="modal surface gateway-dialog" aria-labelledby="route-delete-heading">
+    <dialog id="route-delete-dialog" class="modal surface gateway-dialog" aria-labelledby="route-delete-heading" aria-describedby="route-delete-description">
       <div class="modal-heading">
         <div><h2 id="route-delete-heading">删除此路由？</h2></div>
       </div>
@@ -346,7 +346,7 @@
       <p class="field-help">此路由将不再接受请求，其认证会一并删除。先处理引用它的规则与 CLI 配置。</p>
       <div class="modal-actions gateway-actions"><button id="route-delete-abort" type="button" class="button default">保留路由</button><button id="route-delete-confirm" type="button" class="button danger">确认删除</button></div>
     </dialog>
-    <dialog id="listener-stop-dialog" class="modal surface gateway-dialog" aria-labelledby="listener-stop-heading">
+    <dialog id="listener-stop-dialog" class="modal surface gateway-dialog" aria-labelledby="listener-stop-heading" aria-describedby="listener-stop-description">
       <div class="modal-heading">
         <div><h2 id="listener-stop-heading">停止数据监听？</h2></div>
       </div>
@@ -354,6 +354,6 @@
       <p class="field-help">若 CLI 仍指向本机网关入口，停止后客户端可能无法请求。可取消并选择“恢复入口并停止监听”。</p>
       <div class="modal-actions gateway-actions"><button id="listener-stop-abort" type="button" class="button default">保留监听</button><button id="listener-stop-confirm" type="button" class="button danger">确认停止</button></div>
     </dialog>
-    <dialog id="workbench-delete-dialog" class="surface panel gateway-dialog"><h3>确认删除</h3><p id="workbench-delete-text" class="field-help"></p><div class="gateway-actions"><button id="workbench-delete-confirm" type="button" class="button danger">确认删除</button><button id="workbench-delete-cancel" type="button" class="button default">取消</button></div></dialog>
+    <dialog id="workbench-delete-dialog" class="surface panel gateway-dialog" aria-labelledby="workbench-delete-heading" aria-describedby="workbench-delete-text"><h3 id="workbench-delete-heading">确认删除</h3><p id="workbench-delete-text" class="field-help"></p><div class="gateway-actions"><button id="workbench-delete-confirm" type="button" class="button danger">确认删除</button><button id="workbench-delete-cancel" type="button" class="button default">取消</button></div></dialog>
   </body>
 </html>

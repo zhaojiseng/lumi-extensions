@@ -8,7 +8,7 @@
     providerModelsTicket: 0, providerModelsLoading: false, providerModelsMessage: '', providerModelsKind: '',
     rules: [], ruleVersion: 0, connecting: false, connectionPromise: null, reconnectTimer: null, connectionFailures: 0, disposed: false,
     recording: null, recordingVersion: 0, encryptionAvailable: false,
-    records: [], nextCursor: null, selection: new Set(), recordsTicket: 0, recordsPages: 0, recordsUpdated: false, recordsRevision: 0,
+    records: [], nextCursor: null, selection: new Set(), recordsTicket: 0, recordsPages: 0, recordsUpdated: false, recordsRevision: 0, recordsLoads: new Set(),
     detail: null, bodyCursor: null, detailTicket: 0, detailLoading: false,
     cliPreview: null, cliTransaction: null, cliTicket: 0, activeTab: 'gateway', previewTicket: 0, listenerChanging: false, listenerTicket: 0,
     drafts: Object.fromEntries(['route', 'recording', 'local', 'access'].map(name => [name, { base: null, values: null, dirty: false, secretsCleared: false }])),
@@ -299,14 +299,15 @@
     if (state.activeTab !== name) {clearProviderCatalog();clearGeneratedClientKey();}
     clearSecrets();
     state.activeTab = name;
-    workbench.refreshChain();
     for (const panel of document.querySelectorAll('[data-panel]')) panel.hidden = panel.dataset.panel !== name;
     for (const button of document.querySelectorAll('[data-tab]')) {
       button.classList.toggle('active', button.dataset.tab === name);
       if (button.dataset.tab === name) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
     }
-    if (name === 'records' && state.session && !state.records.length) void action(null, () => loadRecords(false));
+    workbench.refreshChain();
+    if (name === 'records' && state.session && !state.records.length && !state.recordsLoads.size) void action(null, () => loadRecords(false));
+    scheduleRecordsRefresh();
     updateButtons();
   }
   function clearDetail() {
@@ -341,7 +342,7 @@
       if (name === 'route') { $('route-id').readOnly = false; state.editingRoute = null; state.routeCreating = false; state.previousRoute = null; }
     }
     $('body-consent-panel').hidden = true;
-    state.records = []; state.nextCursor = null; state.selection.clear(); state.recordsTicket += 1; state.recordsPages = 0; state.recordsUpdated = false; state.recordsRevision += 1;
+    state.records = []; state.nextCursor = null; state.selection.clear(); state.recordsTicket += 1; state.recordsPages = 0; state.recordsUpdated = false; state.recordsRevision += 1; state.recordsLoads = new Set();
     state.cliTransaction = null; $('cli-recovery').hidden = true;
     clearCliPreview(); clearDetail(); renderListener(); renderRoutes(); renderRecords();
     if (preserveDrafts) for (const name of ['route', 'recording']) if (state.drafts[name].dirty) restoreDraft(name);
@@ -465,7 +466,7 @@
     $('overview-management-address').textContent=state.local?.managementPort?'https://127.0.0.1:'+state.local.managementPort:'尚未设置';
     renderAccessAddress();
     $('listener-control-hint').textContent = !active ? '先连接管理端以确认监听状态；断开管理连接不会自动停止数据监听。' : state.listener?.state === 'unknown' ? '等待读取真实监听状态后才能启停。' : canStartListener() ? state.listener.state === 'failed' ? '监听失败。确认没有进行中的请求后可重试启动，由宿主核验监听归属。' : '监听已停止。可修改路由或参数，准备好后启动监听。' : !state.listener?.owned ? '此监听不属于当前管理连接，停止与取消操作不可用。' : state.listener.state === 'draining' ? '正在等待请求结束；有进行中的请求时可以取消并停止。' : state.listener.state === 'listening' ? '监听已运行。配置可直接保存；新请求使用新设置，进行中的请求继续完成。' : '等待读取真实监听状态与进行中的请求数量。';
-    workbench.renderChain();
+    workbench.statusChanged();
     updateButtons();
   }
   function retryConnection() {
@@ -485,9 +486,11 @@
         session=await sdk.gateway.connect({});
         if(state.disposed||state.epoch!==epoch){await sdk.gateway.disconnect({sessionId:session.sessionId}).catch(()=>{});return;}
         state.session=session;const snapshot=requireSession();
-        const summary=await sdk.gateway.status(),status=summary.pairings.find(value=>value.instanceId===session.instanceId);
+        const summary=await sdk.gateway.status();assertCurrent(snapshot);
+        const status=summary.pairings.find(value=>value.instanceId===session.instanceId);
         state.listener={state:status?.listening===true?'listening':status?.listening===false?'stopped':'unknown',address:status?.listening&&state.local?.listenPort?'127.0.0.1:'+state.local.listenPort:null,activeRequests:status?.activeRequests??null,owned:false};renderListener();
-        await Promise.all([loadConfiguration(),loadRecords(false)]);if(!current(snapshot))return;
+        await loadConfiguration();if(!current(snapshot))return;
+        if(state.activeTab==='records')await loadRecords(false);if(!current(snapshot))return;
         const dispose=await sdk.gateway.events.subscribe({sessionId:session.sessionId},event=>{
           if(!current(snapshot)||event.sessionId!==snapshot.sessionId)return;
           if(event.type==='status'){
@@ -499,12 +502,7 @@
             if(event.status.state==='unknown')retryConnection();else {clearTimeout(state.reconnectTimer);state.reconnectTimer=null;}
           }else if(event.type==='warning')notice('网关报告异常，请检查监听状态与录制完整性。','warning');
           else if(event.type==='record-summary'){
-            state.recordsRevision++;state.recordsUpdated=true;renderRecordsUpdate();
-            if(state.activeTab!=='records')return;
-            clearTimeout(state.refreshTimer);state.refreshTimer=setTimeout(()=>{
-              if(!current(snapshot)||state.activeTab!=='records')return;
-              if(recordsInUse())renderRecordsUpdate();else void action(null,()=>loadRecords(false,{automatic:true}));
-            },150);
+            recordSummaryChanged();
           }
         });
         if(current(snapshot))state.unsubscribe=dispose;else dispose();
@@ -777,25 +775,51 @@
     state.recordsTicket += 1; state.records = []; state.nextCursor = null; state.selection.clear(); state.recordsPages = 0; state.recordsUpdated = false; clearDetail(); renderRecords();
   }
   function recordsInUse() { return Boolean(state.selection.size || state.recordsPages > 1 || busy.has($('records-more')) || state.detail || state.detailLoading || state.pendingDelete || $('delete-dialog').open || busy.has($('delete-confirm'))); }
+  function canRefreshRecords() { return Boolean(state.session && state.activeTab === 'records' && !document.hidden && !state.localChanging && !recordsInUse()); }
+  function scheduleRecordsRefresh() {
+    if (!canRefreshRecords()) { clearTimeout(state.refreshTimer); state.refreshTimer = null; return; }
+    if (!state.recordsUpdated || state.recordsLoads.size || state.refreshTimer !== null) return;
+    const snapshot = requireSession();
+    state.refreshTimer = setTimeout(() => {
+      state.refreshTimer = null;
+      if (current(snapshot) && canRefreshRecords()) void action(null, () => loadRecords(false, { automatic: true }));
+    }, 250);
+  }
+  function recordSummaryChanged() {
+    const alreadyUpdated = state.recordsUpdated;
+    state.recordsRevision += 1; state.recordsUpdated = true;
+    if (!alreadyUpdated) renderRecordsUpdate();
+    scheduleRecordsRefresh();
+  }
   function renderRecordsUpdate() {
     $('records-update-note').hidden = !state.recordsUpdated;
     $('records-update-message').textContent = recordsInUse() ? '有新请求或状态更新。当前选择与详情保持不变；显示最新记录会返回首批并清除选择。' : '有新请求或状态更新，可显示最新记录。';
   }
   async function loadRecords(append, { automatic = false } = {}) {
-    if (automatic && recordsInUse()) { state.recordsUpdated = true; renderRecordsUpdate(); return false; }
+    if (automatic && (!canRefreshRecords() || state.recordsLoads.size)) { state.recordsUpdated = true; renderRecordsUpdate(); return false; }
     const snapshot = requireSession(); const ticket = ++state.recordsTicket;
     const revision = state.recordsRevision;
     const filter = filterInput();
     const input = { sessionId: snapshot.sessionId, filter, limit: 50 };
     if (append && state.nextCursor) input.cursor = state.nextCursor;
-    const result = await sdk.gateway.records.list(input);
-    if (!current(snapshot) || ticket !== state.recordsTicket) return false;
-    if (automatic && recordsInUse()) { state.recordsUpdated = true; renderRecordsUpdate(); return false; }
-    if (!append) state.selection.clear();
-    state.records = append ? state.records.concat(result.records.filter(record => !state.records.some(old => old.id === record.id))) : result.records;
-    state.recordsPages = append ? state.recordsPages + 1 : 1;
-    state.recordsUpdated = revision !== state.recordsRevision;
-    state.nextCursor = result.nextCursor; renderRecords(); return true;
+    clearTimeout(state.refreshTimer); state.refreshTimer = null;
+    const pending = state.recordsLoads; pending.add(ticket);
+    let received = false;
+    try {
+      const result = await sdk.gateway.records.list(input);
+      received = true;
+      if (!current(snapshot) || ticket !== state.recordsTicket) return false;
+      if (automatic && !canRefreshRecords()) { state.recordsUpdated = true; renderRecordsUpdate(); return false; }
+      if (!append) state.selection.clear();
+      state.records = append ? state.records.concat(result.records.filter(record => !state.records.some(old => old.id === record.id))) : result.records;
+      state.recordsPages = append ? state.recordsPages + 1 : 1;
+      state.recordsUpdated = revision !== state.recordsRevision;
+      state.nextCursor = result.nextCursor; renderRecords(); return true;
+    } finally {
+      pending.delete(ticket);
+      // A stale failure must release newer queued updates without retrying a current failure.
+      if ((received || ticket !== state.recordsTicket) && current(snapshot)) scheduleRecordsRefresh();
+    }
   }
   function renderRecords() {
     const tbody = $('records-body'); tbody.replaceChildren();
@@ -1003,6 +1027,7 @@
     }
   }
   window.addEventListener('pagehide', () => { state.disposed=true;clearTimeout(state.reconnectTimer);state.reconnectTimer=null;const sessionId = state.session?.sessionId; clearSession(); if (sessionId) void sdk?.gateway?.disconnect({ sessionId }).catch(() => {}); });
+  document.addEventListener('visibilitychange', scheduleRecordsRefresh);
   for(const prefix of ['setup','access']) {
     listen(prefix+'-key-copy','click',()=>copyClientKey(prefix));
     const input=$(prefix==='setup'?'setup-client-key':'access-key');
