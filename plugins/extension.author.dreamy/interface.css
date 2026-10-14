@@ -666,6 +666,17 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 /* All background glass uses the chosen blur radius. Selection lenses keep
    zero blur so their label magnification remains readable. */
 :scope, :scope[data-appearance-blur] { --dream-blur: var(--dream-popup-blur); --dream-control-blur: var(--dream-popup-blur); }
+/* Opaque floating fills cover the background. A zero-radius filter skips the
+   hidden blur kernel while retaining the backdrop root and foreground paint.
+   Rounded antialias boundary pixels may differ; keep the translucent full-window
+   modal backdrop and its visible blur unchanged. */
+:scope[data-appearance-transparency="solid"] :is(.modal, .modal.surface, [data-popup-kind="popover"], .multi-popover, .toast, .recharts-default-tooltip, .donut-tooltip),
+:scope[data-appearance-transparency="solid"] .modal.plugin-details-modal::before {
+  backdrop-filter: blur(0px);
+}
+@supports (appearance: base-select) {
+  :scope[data-appearance-transparency="solid"] .select-wrap select::picker(select) { backdrop-filter: blur(0px); }
+}
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
   :scope, :scope[data-appearance-blur], :scope[data-appearance-distortion] {
     --lumi-glass-distortion: 0;

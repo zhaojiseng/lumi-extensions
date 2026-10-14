@@ -19,6 +19,8 @@
     "check:dreamy-market-ui": "node scripts/check-dreamy-market-ui.mjs",
     "check:dreamy-controls-ui": "node scripts/check-dreamy-controls-ui.mjs",
     "check:dreamy-settings-ui": "node scripts/check-dreamy-settings-ui.mjs",
+    "check:dreamy-solid-ui": "node scripts/check-dreamy-solid-ui.mjs",
+    "check:dreamy-rendering": "node scripts/check-dreamy-rendering.mjs",
     "package": "node scripts/package.mjs"
   }
 }

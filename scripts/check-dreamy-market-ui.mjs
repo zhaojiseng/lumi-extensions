@@ -5,10 +5,13 @@ import {existsSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
+import {pathToFileURL} from 'node:url';
 const root=path.resolve(import.meta.dirname,'..'),host=path.resolve(process.argv[2] || '../main');
 process.chdir(host);
 const requireHost=createRequire(path.join(host,'package.json'));
 const {build}=requireHost('esbuild');
+const previewAdapter=path.join(host,'scripts/appearance-preview-build.ts');
+const previewPlugins=existsSync(previewAdapter) ? [(await import(pathToFileURL(previewAdapter))).appearancePreviewEsbuildPlugin(host)] : [];
 
 test('Dreamy real marketplace keeps headings and cards sharp with iframe previews',{timeout:90000},async t=>{
   const electron=requireHost('electron');if(!existsSync(electron))throw new Error('请先在宿主运行 npm run setup:electron。');
@@ -27,7 +30,7 @@ window.lumi={bootstrap:async()=>({preferences:prefs,desktop:true,platform:'win32
 const {default:App}=await import('./src/App');createRoot(document.getElementById('root')).render(<App/>);
 const {scopedInterfaceSheet}=await import('./src/host/interface');const {installGlassRefraction}=await import('./src/host/glass-refraction');const {defaultInterfaceLayout}=await import('./plugins/interface.default/layout');
 fixture.applyGlass=(mode,blur)=>{const shell=document.querySelector('.desktop-shell');shell.dataset.interface='extension.author.dreamy';shell.dataset.theme=mode;shell.dataset.appearanceBlur=blur;shell.dataset.appearanceDistortion='strong';shell.dataset.appearanceTransparency='clear';document.documentElement.dataset.theme=mode;shell.style.colorScheme=mode;const layout=new CSSStyleSheet();layout.replaceSync(defaultInterfaceLayout);document.adoptedStyleSheets=[layout,scopedInterfaceSheet({id:'extension.author.dreamy',css:${JSON.stringify(dreamyCss)}})];};
-fixture.installGlass=()=>installGlassRefraction(document.querySelector('.desktop-shell'));`},bundle:true,platform:'browser',format:'esm',write:false,loader:{'.css':'empty','.svg':'text'},define:{'process.env.NODE_ENV':'"production"'},logLevel:'silent'});
+fixture.installGlass=()=>installGlassRefraction(document.querySelector('.desktop-shell'));`},plugins:previewPlugins,bundle:true,platform:'browser',format:'esm',write:false,loader:{'.css':'empty','.svg':'text'},define:{'process.env.NODE_ENV':'"production"'},logLevel:'silent'});
   await writeFile(path.join(directory,'app.js'),script.outputFiles[0].contents);
   const styles=await Promise.all(['components/segmented-switch.css','styles.css','workbench.css','select.css','theme-tokens.css','theme.css','updates-trends.css','filters-tools-motion.css','platform-logs.css','app-cache.css','host/extension-market.css'].map(file=>readFile(path.resolve('src',file),'utf8')));await writeFile(path.join(directory,'style.css'),styles.join('\n')+'\n*{animation:none!important;transition:none!important}');
   await writeFile(path.join(directory,'index.html'),'<html><head><meta charset="UTF-8"><link rel="stylesheet" href="style.css"></head><body><div id="root"></div><script type="module" src="app.js"></script></body></html>');
@@ -46,20 +49,47 @@ await until(()=>document.querySelectorAll('.extension-market .theme-preview ifra
 const output=${JSON.stringify(path.join(root,'.cache/dreamy-market-ui'))};fs.mkdirSync(output,{recursive:true});
 const run=async(fn,...args)=>win.webContents.executeJavaScript('('+fn.toString()+')(...'+JSON.stringify(args)+')');
 const settle=async()=>{await new Promise(r=>setTimeout(r,300));await win.webContents.capturePage(undefined,{stayHidden:true,stayAwake:true});await run(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));};
-const sharpness=async()=>{
- const rects=await run(()=>[...document.querySelectorAll('.extension-market h2,.extension-market h3')].map(n=>{const r=n.getBoundingClientRect(),d=n.closest('.modal').getBoundingClientRect();return {x:Math.ceil(r.x),y:Math.ceil(r.y),width:Math.floor(r.width),height:Math.floor(r.height),visible:r.y>=d.y && r.bottom<=d.bottom};}).filter(r=>r.visible));
- // Measure crops from the full rendered frame, normalized to CSS pixels for DPI.
- const viewport=await run(()=>({width:innerWidth,height:innerHeight}));const full=nativeImage.createFromBuffer((await win.webContents.capturePage(undefined,{stayHidden:true,stayAwake:true})).toPNG()).resize(viewport);const values=[];for(const rect of rects){delete rect.visible;const img=full.crop(rect),bitmap=img.toBitmap(),width=img.getSize().width;let edge=0;for(let i=4;i<bitmap.length;i+=4){if((i/4)%width===0)continue;edge+=Math.abs(bitmap[i]-bitmap[i-4])+Math.abs(bitmap[i+1]-bitmap[i-3])+Math.abs(bitmap[i+2]-bitmap[i-2]);}values.push(edge/(bitmap.length/4));}return values;
+const textSnapshot=()=>run(()=>({
+ viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},
+ scrollTop:document.querySelector('.extension-market').scrollTop,
+ headings:[...document.querySelectorAll('.extension-market h2,.extension-market h3')].map((n,index)=>{
+  const range=document.createRange();range.selectNodeContents(n);
+  const ink=range.getBoundingClientRect(),box=n.getBoundingClientRect(),dialog=n.closest('.modal').getBoundingClientRect(),style=getComputedStyle(n);
+  // The text range excludes unused heading width; paired captures below remove
+  // visible background detail even inside the glyph rectangle and its holes.
+  const x=Math.floor(ink.x)-1,y=Math.floor(ink.y)-1,right=Math.ceil(ink.right)+1,bottom=Math.ceil(ink.bottom)+1;
+  return {index,text:n.textContent,weight:Number(style.fontWeight),font:style.font,fontSize:parseFloat(style.fontSize),color:style.color,filter:style.filter,visible:box.y>=dialog.y && box.bottom<=dialog.bottom && x>=0 && y>=0 && right<=innerWidth && bottom<=innerHeight,rect:{x,y,width:right-x,height:bottom-y}};
+ }).filter(heading=>heading.visible)
+}));
+const sharpness=async(snapshot)=>{
+ const current=await textSnapshot();
+ if(JSON.stringify(current)!==JSON.stringify(snapshot))throw Error('Marketplace text geometry or viewport changed between paired captures');
+ const capture=async()=>nativeImage.createFromBuffer((await win.webContents.capturePage(undefined,{stayHidden:true,stayAwake:true})).toPNG()).resize({width:snapshot.viewport.width,height:snapshot.viewport.height});
+ const full=await capture();let withoutInk;
+ await run(()=>{const sheet=document.createElement('style');sheet.id='market-foreground-probe';sheet.textContent='.extension-market h2,.extension-market h3{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important}';document.head.append(sheet);});
+ try{await settle();withoutInk=await capture();}
+ finally{await run(()=>document.getElementById('market-foreground-probe')?.remove());await settle();}
+ const restored=await textSnapshot();if(JSON.stringify(restored)!==JSON.stringify(snapshot))throw Error('Marketplace foreground probe changed text layout or scroll');
+ return snapshot.headings.map(heading=>{
+  const image=full.crop(heading.rect),a=image.toBitmap(),b=withoutInk.crop(heading.rect).toBitmap(),width=image.getSize().width,height=image.getSize().height,difference=new Float64Array(a.length/4);let inkPixels=0,contrast=0,edge=0;
+  for(let i=0;i<a.length;i+=4){const value=(Math.abs(a[i]-b[i])+Math.abs(a[i+1]-b[i+1])+Math.abs(a[i+2]-b[i+2]))/3;difference[i/4]=value;contrast+=value;if(value>12)inkPixels++;}
+  for(let i=0;i<difference.length;i++){if(i%width)edge+=Math.abs(difference[i]-difference[i-1]);if(i>=width)edge+=Math.abs(difference[i]-difference[i-width]);}
+  // The production heading uses weight 550. The paired snapshot comparison
+  // verifies its font/style against the no-backdrop baseline without inventing
+  // a heavier product font requirement; pixels still prove visible sharp ink.
+  if(!heading.text.trim() || !Number.isFinite(heading.weight) || heading.weight<=0 || heading.fontSize<12 || heading.filter!=='none' || inkPixels<30 || contrast/Math.max(1,inkPixels)<16)throw Error('Marketplace heading missing, weak or foreground-filtered '+JSON.stringify({heading,inkPixels,contrast}));
+  return {index:heading.index,text:heading.text,rect:heading.rect,edge:edge/(width*height),inkPixels,contrastPerInk:contrast/inkPixels};
+ });
 };
 const scenarios=[];
 for(const mode of ['light','dark'])for(const blur of ['soft','strong'])for(const scroll of ['top','bottom']){
  await run((mode,blur,scroll)=>{fixture.applyGlass(mode,blur);const dialog=document.querySelector('.extension-market');dialog.scrollTop=scroll==='top' ? 0 : dialog.scrollHeight;},mode,blur,scroll);await settle();
- const filtered=await sharpness();fs.writeFileSync(path.join(output,mode+'-'+blur+'-'+scroll+'.png'),(await win.webContents.capturePage(undefined,{stayHidden:true,stayAwake:true})).toPNG());
- await run(()=>{const sheet=new CSSStyleSheet();sheet.replaceSync('.modal-overlay::before,.modal{backdrop-filter:none!important}');document.adoptedStyleSheets.push(sheet);});await settle();const reference=await sharpness();
- const ratios=filtered.map((v,i)=>v/reference[i]);if(!ratios.length || reference.some(v=>v<1) || ratios.some(v=>v<.8))throw new Error('Marketplace text blurred '+JSON.stringify({mode,blur,scroll,filtered,reference,ratios}));
+ const snapshot=await textSnapshot(),filtered=await sharpness(snapshot);fs.writeFileSync(path.join(output,mode+'-'+blur+'-'+scroll+'.png'),(await win.webContents.capturePage(undefined,{stayHidden:true,stayAwake:true})).toPNG());
+ await run(()=>{const sheet=new CSSStyleSheet();sheet.replaceSync('.modal-overlay::before,.modal{backdrop-filter:none!important}');document.adoptedStyleSheets.push(sheet);});await settle();const reference=await sharpness(snapshot);
+ const ratios=filtered.map((v,i)=>v.edge/reference[i].edge);if(!ratios.length || reference.some(v=>v.edge<1) || ratios.some(v=>v<.8))throw new Error('Marketplace text blurred '+JSON.stringify({mode,blur,scroll,filtered,reference,ratios}));
  const scrollTop=await run(()=>document.querySelector('.extension-market').scrollTop);
  if(scroll==='bottom' && scrollTop<=0)throw new Error('Scroll scenario did not scroll');
- scenarios.push({mode,blur,scroll,scrollTop,ratios});
+ scenarios.push({mode,blur,scroll,scrollTop,ratios,foreground:{filtered,reference}});
 }
 await run(()=>{document.querySelector('[data-market-plugin="extension.author.dreamy"] .text-link').click();});await settle();
 if(!await run(()=>document.querySelector('.market-detail') && !fixture.errors.length))throw new Error('Marketplace detail or renderer failed');
