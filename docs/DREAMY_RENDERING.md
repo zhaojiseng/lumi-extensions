@@ -4,6 +4,25 @@
 
 浮梦是 `kind: interface` 的 CSS 界面插件，保留宿主 React 树、业务状态和受限桌面接口。插件材质来自 [interface.css](../plugins/extension.author.dreamy/interface.css)，几何折射来自宿主 [glass-refraction.ts](../../main/src/host/glass-refraction.ts)。插件包不携带 shader、宿主 SDK 或任意滤镜 URL。
 
+## 2026-10-23：共享运行层优化
+
+本轮优化随 Lumi 1.0.5 提供：纯位移图计算拆为独立模块，折射权重为零的像素跳过四次法线距离采样；默认布局样式表保留到宿主卸载，切换插件时只替换插件样式。旧导出与 CSS 接口保留，浮梦 1.1.10 的目录包、材质和最低宿主要求保持原样。收益需要更新宿主，重新安装同版插件不会更新宿主运行层。
+
+Windows x64 / Node 24.18.0 下，256 组几何参数的位移图逐字节一致。应用后同进程交替测量的生成耗时中位数：工作区 6.542 → 2.982ms、模型卡片 5.139 → 3.617ms、弹窗 8.637 → 3.370ms、选中透镜 0.478 → 0.340ms。每项预热 5 次，15 组样本、每组 5 次生成。它们是 CPU 位移图生成耗时，不能代替整帧、GPU 或整机测量；正常运行仍使用已有几何与纹理缓存。
+
+新增 `bench:dreamy-glass` 可比较指定宿主与旧运行层，默认只读源码并使用模拟几何，不启动 Electron，也不访问账户、会话或网络。以下 PowerShell 命令在插件仓库根运行；基线固定为本次优化前的完整主程序提交：
+
+```powershell
+New-Item -ItemType Directory -Force .cache/dreamy-glass-bench
+git -C ../main show 5d25ca2fc9cef6e2bf993752a54f429cdd2959e5:src/host/glass-refraction.ts |
+  Set-Content -Encoding utf8 .cache/dreamy-glass-bench/baseline.ts
+npm.cmd run bench:dreamy-glass -- ../main --baseline-runtime .cache/dreamy-glass-bench/baseline.ts --output .cache/dreamy-glass-bench/result.json
+```
+
+可加 `--runtime <候选 glass-refraction.ts>` 比较尚未应用的实现。输出包括编译后基线与候选整体的 SHA-256、环境、样本设置、字节一致性与各项耗时，不设容易受机器差异影响的耗时门禁。
+
+本次官方插件校验、完整软件合成 UI、硬件合成开关动画像素均通过；主程序类型检查、5 项位移图测试、4 项真实 Electron 回归、构建及隔离桌面启动检查通过。软件与硬件像素分别见 `.cache/dreamy-ui/result.json`、`result-pixels-gpu.json`；同机测量见 `.cache/theme-efficiency-20261023/applied-benchmark.json`。本节记录主题专项验证；插件目录包未变，无需单独创建插件 Release。宿主完整发行验证见相邻主程序验证记录。主程序具体拆分及验证见 [主题性能记录](../../main/docs/THEME_PERFORMANCE.md)。
+
 ## 1. 从数据到显示器
 
 ```mermaid

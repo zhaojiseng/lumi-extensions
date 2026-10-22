@@ -21,6 +21,7 @@
     "check:dreamy-settings-ui": "node scripts/check-dreamy-settings-ui.mjs",
     "check:dreamy-solid-ui": "node scripts/check-dreamy-solid-ui.mjs",
     "check:dreamy-rendering": "node scripts/check-dreamy-rendering.mjs",
+    "bench:dreamy-glass": "node scripts/benchmark-dreamy-glass.mjs",
     "package": "node scripts/package.mjs"
   }
 }
